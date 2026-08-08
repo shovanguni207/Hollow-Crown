@@ -245,7 +245,7 @@ function hasItem(itemId) {
 function renderNode(nodeId) {
   const node = activeStory.nodes[nodeId];
   if (!node) {
-    passageText.textContent = "This passage doesn't exist yet — the tale ends here by accident rather than design.";
+    passageText.textContent = "This passage doesn't exist yet, the tale ends here by accident rather than design.";
     choicesEl.innerHTML = "";
     return;
   }
@@ -563,7 +563,7 @@ document.getElementById("mgr-import-input").addEventListener("change", async (e)
     renderManager();
     showToast("Imported \u201c" + title + "\u201d.");
   } catch (err) {
-    await showAlert("That file doesn't look like a valid tale — it needs a passage called \u201cstart\u201d at minimum.");
+    await showAlert("That file doesn't look like a valid tale. it needs a passage called \u201cstart\u201d at minimum.");
   }
 });
 
@@ -691,7 +691,7 @@ function renderItemDefs() {
   if (definedIds.length === 0 && undefinedIds.length === 0) {
     const empty = document.createElement("p");
     empty.className = "ledger-empty";
-    empty.textContent = "No items yet — define one below, then reference its id in a choice's \u201cgrants\u201d or \u201crequires\u201d field.";
+    empty.textContent = "No items yet, define one below, then reference its id in a choice's \u201cgrants\u201d or \u201crequires\u201d field.";
     wrap.appendChild(empty);
     return;
   }
@@ -834,7 +834,7 @@ document.getElementById("item-def-new").addEventListener("click", async () => {
   const id = slugify(raw) || ("item" + Date.now());
   if (!gmStory.items) gmStory.items = {};
   if (gmStory.items[id]) {
-    showToast("An item with that id already exists — opening it.");
+    showToast("An item with that id already exists, opening it.");
     expandedItemId = id;
     renderItemDefs();
     return;
@@ -1023,7 +1023,7 @@ function renderChoiceRows() {
     const empty = document.createElement("p");
     empty.className = "hint";
     empty.style.textAlign = "left";
-    empty.textContent = "No choices yet — add one so the reader has somewhere to go from here.";
+    empty.textContent = "No choices yet, add one so the reader has somewhere to go from here.";
     wrap.appendChild(empty);
     return;
   }
@@ -1160,7 +1160,7 @@ document.getElementById("gm-new-node").addEventListener("click", async () => {
 
 document.getElementById("gm-delete-node").addEventListener("click", async () => {
   if (gmSelectedNodeId === "start") {
-    await showAlert("The start passage can't be deleted — every tale needs a beginning.");
+    await showAlert("The start passage can't be deleted, every tale needs a beginning.");
     return;
   }
   const ok = await showConfirm("Delete this passage? Choices in other passages that lead here won't be fixed automatically.");
