@@ -10,17 +10,26 @@ A fantasy Choose Your Own Adventure engine with a built-in authoring tool (the G
 Grimoire (authoring tool)
 
 1.Multi-tale library manager (open, rename, duplicate, export, delete).
+
 2.Passage editor with accordion-style choice cards.
+
 3.Item registry with autocomplete for requirements/grants.
+
 4.Live playtesting from within the editor.
+
 5.JSON import/export per tale.
+
 6.Backward-compatible migration for older save data.
 
 **Usage**
 
 1.Play the built-in tale directly from the main screen.
-2.Write your own: open the Grimoire from the main menu, create a new tale, and add passages. Each passage can define choices that link to other passages, optionally requiring or granting inventory items.
+
+2.Write your own: open the Grimoire from the main menu, create a new tale, and add passages. Each passage can define choices that link to other passages
+optionally requiring or granting inventory items.
+
 3.Playtest a tale in progress at any point from within the Grimoire.
+
 4.Export a tale to a `.json` file to back it up or share it; import a `.json` file to load one back in.
 
 **Data Model**
