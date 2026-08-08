@@ -9,12 +9,12 @@ A fantasy Choose Your Own Adventure engine with a built-in authoring tool (the G
 
 Grimoire (authoring tool)
 
-1.Multi-tale library manager (open, rename, duplicate, export, delete)
-2.Passage editor with accordion-style choice cards
-3.Item registry with autocomplete for requirements/grants
-4.Live playtesting from within the editor
-5.JSON import/export per tale
-6.Backward-compatible migration for older save data
+1.Multi-tale library manager (open, rename, duplicate, export, delete).
+2.Passage editor with accordion-style choice cards.
+3.Item registry with autocomplete for requirements/grants.
+4.Live playtesting from within the editor.
+5.JSON import/export per tale.
+6.Backward-compatible migration for older save data.
 
 **Usage**
 
