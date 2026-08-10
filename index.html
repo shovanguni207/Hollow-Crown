@@ -29,10 +29,15 @@
       <header class="story-header">
         <button class="leave-link" id="leave-story-btn" type="button">‹ Leave the tale</button>
         <span class="chapter-label" id="chapter-label">Chapter</span>
-        <button class="satchel-toggle" id="satchel-toggle" type="button" aria-expanded="false" hidden>
-          <span class="satchel-icon" aria-hidden="true">◆</span>
-          <span id="satchel-count">0</span> carried
-        </button>
+        <div class="story-header-right">
+          <button class="back-btn" id="back-btn" type="button" hidden>
+            <span class="back-icon" aria-hidden="true">‹</span> Go back
+          </button>
+          <button class="satchel-toggle" id="satchel-toggle" type="button" aria-expanded="false" hidden>
+            <span class="satchel-icon" aria-hidden="true">◆</span>
+            <span id="satchel-count">0</span> carried
+          </button>
+        </div>
 
         <div class="satchel-panel" id="satchel-panel" hidden>
           <span class="corner-flourish tl" aria-hidden="true">◆</span>
