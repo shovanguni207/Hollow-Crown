@@ -85,7 +85,6 @@ const DEFAULT_STORY = {
 };
 
 // ---- Global play state ---------------------------------------------
-const SAVE_KEY = "hollow-crown-save";
 const TALES_KEY = "hollow-crown-tales";
 const LEGACY_GM_KEY = "hollow-crown-gm-story"; // single-tale format from an earlier version
 
@@ -94,7 +93,8 @@ let mode = "play";                  // "play" | "gm-playtest"
 
 let state = {
   currentNode: "start",
-  inventory: []   // array of item ids
+  inventory: [],   // array of item ids
+  history: []      // stack of {currentNode, inventory} snapshots taken before each choice, for "Go back"
 };
 
 // ---- DOM refs: play/ending screens -------------------------------------
@@ -105,6 +105,7 @@ const managerPage = document.getElementById("manager-page");
 const gmPage = document.getElementById("gm-page");
 
 const chapterLabel = document.getElementById("chapter-label");
+const backBtn = document.getElementById("back-btn");
 const satchelToggle = document.getElementById("satchel-toggle");
 const satchelPanel = document.getElementById("satchel-panel");
 const satchelCount = document.getElementById("satchel-count");
@@ -251,7 +252,6 @@ function renderNode(nodeId) {
   }
 
   state.currentNode = nodeId;
-  if (mode === "play") save();
 
   if (node.end) {
     showEnding(node);
@@ -264,6 +264,7 @@ function renderNode(nodeId) {
   chapterLabel.textContent = node.chapter || "";
   passageText.textContent = node.text || "";
   renderInventory();
+  updateNavButtons();
 
   choicesEl.innerHTML = "";
   (node.choices || []).forEach(choice => {
@@ -288,6 +289,8 @@ function renderNode(nodeId) {
     }
 
     btn.addEventListener("click", () => {
+      // Stash where we're leaving from so "Go back" can return to it.
+      state.history.push({ currentNode: state.currentNode, inventory: state.inventory.slice() });
       if (choice.grants && !hasItem(choice.grants.item)) {
         state.inventory.push(choice.grants.item);
       }
@@ -307,13 +310,24 @@ function showEnding(node) {
   endingText.textContent = node.text || "";
 }
 
-function save() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+// Steps exactly one passage backward, restoring the inventory as it was at
+// that point too (so undoing a choice that granted an item actually takes
+// the item back, rather than just changing which passage is showing).
+function goBack() {
+  if (!state.history.length) return;
+  const prev = state.history.pop();
+  state.inventory = prev.inventory;
+  renderNode(prev.currentNode);
 }
 
+function updateNavButtons() {
+  backBtn.hidden = state.history.length === 0;
+}
+
+backBtn.addEventListener("click", goBack);
+
 function resetState() {
-  state = { currentNode: "start", inventory: [] };
-  if (mode === "play") save();
+  state = { currentNode: "start", inventory: [], history: [] };
 }
 
 document.getElementById("start-btn").addEventListener("click", () => {
@@ -347,6 +361,28 @@ let gmSelectedNodeId = "start";
 let editingChoices = [];
 let expandedChoiceIndex = null; // which choice card (if any) is expanded in the accordion
 let expandedItemId = null;      // which item definition (if any) is expanded
+
+// In-progress edits per passage, keyed by node id. Switching passages in the
+// sidebar used to always reload from gmStory (the last *saved* state),
+// silently discarding anything typed but not yet saved. This keeps an
+// in-memory draft per passage so hopping between passages within the editor
+// preserves unsaved work — "Save passage" is still what actually persists
+// it to gmStory/localStorage, and leaving the editor (openTale/back to the
+// library) clears every draft, so nothing survives outside this panel.
+let nodeDrafts = {};
+let gmEditorLoaded = false; // guards against capturing a bogus draft on the very first selectGmNode() call
+
+// ---- DOM refs: the passage editor form (queried once here rather than
+// re-fetched by id on every keystroke/save, same pattern as the play-screen
+// refs above) ----
+const gmNodeIdInput = document.getElementById("gm-node-id");
+const gmChapterInput = document.getElementById("gm-chapter");
+const gmTextInput = document.getElementById("gm-text");
+const gmIsEndingInput = document.getElementById("gm-is-ending");
+const gmEndingTypeInput = document.getElementById("gm-ending-type");
+const gmEndingFields = document.getElementById("gm-ending-fields");
+const gmChoicesBlock = document.getElementById("gm-choices-block");
+const gmNodeSearchInput = document.getElementById("gm-node-search");
 
 function starterStory() {
   return {
@@ -584,7 +620,9 @@ function openTale(id) {
   gmStory = tales[id].story;
   expandedItemId = null;
   nodeFilterQuery = "";
-  document.getElementById("gm-node-search").value = "";
+  gmNodeSearchInput.value = "";
+  nodeDrafts = {};
+  gmEditorLoaded = false;
   hideAllPages();
   gmPage.hidden = false;
   updateGmTaleBar();
@@ -677,6 +715,50 @@ function buildAccordionCard({ isExpanded, onToggle, buildSummary, removeLabel, o
   return card;
 }
 
+/* ---- Renaming an item's id -------------------------------------------
+   The id field in the item card is disabled on purpose — an id is a
+   reference key, so changing it can't just be a text edit, it has to fan
+   out to every place that reference lives. This does that fan-out: moves
+   the registry entry to the new key, then walks every passage's choices
+   AND every unsaved draft's choices (the editor allows several passages to
+   have unsaved edits sitting in nodeDrafts at once — see captureNodeDraft
+   — and a draft is what selectGmNode loads in preference to gmStory, so a
+   stale id left behind there would silently resurrect itself the next time
+   that passage is opened, or get written back out on its next save).
+   Note the two structures use different shapes for the same reference:
+   gmStory choices nest it as requires.item/grants.item, while draft
+   choices (mirroring editingChoices) store it as flat requires/grantsItem
+   strings. Returns how many choice references got updated across both,
+   purely for the confirmation toast. */
+function renameItemId(oldId, newId) {
+  const def = gmStory.items[oldId];
+  delete gmStory.items[oldId];
+  gmStory.items[newId] = def;
+
+  let refCount = 0;
+  Object.values(gmStory.nodes).forEach(node => {
+    (node.choices || []).forEach(choice => {
+      if (choice.requires && choice.requires.item === oldId) {
+        choice.requires.item = newId;
+        refCount++;
+      }
+      if (choice.grants && choice.grants.item === oldId) {
+        choice.grants.item = newId;
+        refCount++;
+      }
+    });
+  });
+
+  Object.values(nodeDrafts).forEach(draft => {
+    (draft.choices || []).forEach(c => {
+      if (c.requires === oldId) { c.requires = newId; refCount++; }
+      if (c.grantsItem === oldId) { c.grantsItem = newId; refCount++; }
+    });
+  });
+
+  return refCount;
+}
+
 /* ---- Item Definitions: the single source of truth for item labels ------- */
 function renderItemDefs() {
   const wrap = document.getElementById("item-defs-list");
@@ -750,11 +832,55 @@ function buildItemDefCard(id, usage) {
       const idField = document.createElement("label");
       idField.className = "gm-choice-field";
       idField.textContent = "Item id";
+
+      const idRow = document.createElement("div");
+      idRow.className = "item-id-row";
+
       const idInput = document.createElement("input");
       idInput.type = "text";
       idInput.value = id;
       idInput.disabled = true;
-      idField.appendChild(idInput);
+      idRow.appendChild(idInput);
+
+      const changeIdBtn = document.createElement("button");
+      changeIdBtn.type = "button";
+      changeIdBtn.className = "btn-tiny";
+      changeIdBtn.textContent = "Change id";
+      changeIdBtn.addEventListener("click", async () => {
+        const raw = await showPrompt(
+          "New id for \u201c" + (def.label || id) + "\u201d (letters and numbers only). Every choice referencing \u201c" + id + "\u201d will be updated automatically.",
+          id
+        );
+        if (raw === null || !raw.trim()) return;
+
+        const newId = slugify(raw);
+        if (!newId) {
+          await showAlert("That id isn't valid once cleaned up to letters and numbers, try something else.");
+          return;
+        }
+        if (newId === id) return;
+        if (gmStory.items[newId]) {
+          await showAlert("An item with id \u201c" + newId + "\u201d already exists.");
+          return;
+        }
+
+        const refCount = renameItemId(id, newId);
+
+        // If the passage currently open in the editor references this item,
+        // fix up its still-unsaved choice fields too, not just the stored data.
+        editingChoices.forEach(c => {
+          if (c.requires === id) c.requires = newId;
+          if (c.grantsItem === id) c.grantsItem = newId;
+        });
+
+        if (expandedItemId === id) expandedItemId = newId;
+        touchCurrentTale();
+        renderChoiceRows();
+        renderItemDefs();
+        showToast("Item id updated" + (refCount ? " \u2014 " + refCount + " reference" + (refCount === 1 ? "" : "s") + " fixed up." : "."));
+      });
+      idRow.appendChild(changeIdBtn);
+      idField.appendChild(idRow);
       body.appendChild(idField);
 
       const labelField = document.createElement("label");
@@ -826,6 +952,33 @@ function buildUndefinedItemRow(id, usage) {
   row.appendChild(defineBtn);
 
   return row;
+}
+
+/* ---- Resolving item references typed into a choice's "requires"/"grants"
+   field --------------------------------------------------------------
+   Authors mostly discover items by typing a name straight into a choice
+   card, not through the ledger's "+ Define new item" button. That field
+   used to be treated as a raw item id — whatever was typed (spaces,
+   capitals, everything) got saved as the id verbatim, with no registry
+   entry and no way to clean it up afterwards (the id field is disabled by
+   design; see renameItemId for the proper way to change one).
+   This mirrors what "+ Define new item" already does: slugify what was
+   typed into a clean id, and auto-register it (label = the text as typed)
+   the first time it's referenced, so every item id in the tale — however
+   it was created — stays well-formed from the start. */
+function resolveItemRef(rawValue) {
+  const raw = rawValue.trim();
+  if (!raw) return "";
+  if (!gmStory.items) gmStory.items = {};
+
+  // Already a known id (typed exactly, or picked from the autocomplete) — leave it alone.
+  if (gmStory.items[raw]) return raw;
+
+  const id = slugify(raw) || ("item" + Date.now());
+  if (!gmStory.items[id]) {
+    gmStory.items[id] = { label: raw, description: "" };
+  }
+  return id;
 }
 
 document.getElementById("item-def-new").addEventListener("click", async () => {
@@ -940,28 +1093,57 @@ function makeNodeBadge(text, warning) {
   return badge;
 }
 
-document.getElementById("gm-node-search").addEventListener("input", (e) => {
+gmNodeSearchInput.addEventListener("input", (e) => {
   nodeFilterQuery = e.target.value;
   renderGmNodeList();
 });
 
+// Snapshots whatever's currently sitting in the passage form (saved or not)
+// into nodeDrafts, under whichever node id is about to be navigated away
+// from. Cloning editingChoices matters: it's the live array the choice
+// cards write into, so storing the reference itself would let later edits
+// to a *different* passage bleed backward into this draft.
+function captureNodeDraft() {
+  nodeDrafts[gmSelectedNodeId] = {
+    chapter: gmChapterInput.value,
+    text: gmTextInput.value,
+    isEnding: gmIsEndingInput.checked,
+    endingType: gmEndingTypeInput.value,
+    choices: editingChoices.map(c => ({ ...c })),
+    expandedChoiceIndex
+  };
+}
+
 function selectGmNode(id) {
+  if (gmEditorLoaded) captureNodeDraft();
+  gmEditorLoaded = true;
+
   gmSelectedNodeId = id;
+  const draft = nodeDrafts[id];
   const node = gmStory.nodes[id] || { chapter: "", text: "", choices: [] };
 
-  document.getElementById("gm-node-id").value = id;
-  document.getElementById("gm-chapter").value = node.chapter || "";
-  document.getElementById("gm-text").value = node.text || "";
-  document.getElementById("gm-is-ending").checked = !!node.end;
-  document.getElementById("gm-ending-type").value = node.endingType || "";
+  gmNodeIdInput.value = id;
 
-  editingChoices = (node.choices || []).map(c => ({
-    label: c.label || "",
-    to: c.to || "",
-    requires: (c.requires && c.requires.item) || "",
-    grantsItem: (c.grants && c.grants.item) || ""
-  }));
-  expandedChoiceIndex = null;
+  if (draft) {
+    gmChapterInput.value = draft.chapter;
+    gmTextInput.value = draft.text;
+    gmIsEndingInput.checked = draft.isEnding;
+    gmEndingTypeInput.value = draft.endingType;
+    editingChoices = draft.choices.map(c => ({ ...c }));
+    expandedChoiceIndex = draft.expandedChoiceIndex;
+  } else {
+    gmChapterInput.value = node.chapter || "";
+    gmTextInput.value = node.text || "";
+    gmIsEndingInput.checked = !!node.end;
+    gmEndingTypeInput.value = node.endingType || "";
+    editingChoices = (node.choices || []).map(c => ({
+      label: c.label || "",
+      to: c.to || "",
+      requires: (c.requires && c.requires.item) || "",
+      grantsItem: (c.grants && c.grants.item) || ""
+    }));
+    expandedChoiceIndex = null;
+  }
 
   toggleEndingFields();
   renderChoiceRows();
@@ -969,11 +1151,11 @@ function selectGmNode(id) {
 }
 
 function toggleEndingFields() {
-  const isEnding = document.getElementById("gm-is-ending").checked;
-  document.getElementById("gm-ending-fields").hidden = !isEnding;
-  document.getElementById("gm-choices-block").hidden = isEnding;
+  const isEnding = gmIsEndingInput.checked;
+  gmEndingFields.hidden = !isEnding;
+  gmChoicesBlock.hidden = isEnding;
 }
-document.getElementById("gm-is-ending").addEventListener("change", toggleEndingFields);
+gmIsEndingInput.addEventListener("change", toggleEndingFields);
 
 // ---- Choice cards (accordion: collapsed summary, tap to edit) -------------------------------
 // itemPicker: true marks the two fields that reference an item id, so
@@ -1166,6 +1348,7 @@ document.getElementById("gm-delete-node").addEventListener("click", async () => 
   const ok = await showConfirm("Delete this passage? Choices in other passages that lead here won't be fixed automatically.");
   if (!ok) return;
   delete gmStory.nodes[gmSelectedNodeId];
+  delete nodeDrafts[gmSelectedNodeId];
   touchCurrentTale();
   selectGmNode("start");
   showToast("Passage deleted.");
@@ -1174,15 +1357,15 @@ document.getElementById("gm-delete-node").addEventListener("click", async () => 
 // ---- Save passage -------------------------------
 document.getElementById("gm-save-node").addEventListener("click", () => {
   const id = gmSelectedNodeId;
-  const isEnding = document.getElementById("gm-is-ending").checked;
-  const chapter = document.getElementById("gm-chapter").value.trim();
-  const text = document.getElementById("gm-text").value.trim();
+  const isEnding = gmIsEndingInput.checked;
+  const chapter = gmChapterInput.value.trim();
+  const text = gmTextInput.value.trim();
 
   if (isEnding) {
     gmStory.nodes[id] = {
       chapter,
       end: true,
-      endingType: document.getElementById("gm-ending-type").value.trim() || "The End",
+      endingType: gmEndingTypeInput.value.trim() || "The End",
       text: text
     };
   } else {
@@ -1190,15 +1373,27 @@ document.getElementById("gm-save-node").addEventListener("click", () => {
       .filter(c => c.label.trim() && c.to.trim())
       .map(c => {
         const out = { label: c.label.trim(), to: c.to.trim() };
-        if (c.requires.trim()) out.requires = { item: c.requires.trim() };
-        if (c.grantsItem.trim()) out.grants = { item: c.grantsItem.trim() };
+        // resolveItemRef also mutates c.requires/c.grantsItem in place (both
+        // reference the same objects living in editingChoices), so the field
+        // shown in the still-open choice card updates to the clean id too.
+        if (c.requires.trim()) {
+          c.requires = resolveItemRef(c.requires);
+          out.requires = { item: c.requires };
+        }
+        if (c.grantsItem.trim()) {
+          c.grantsItem = resolveItemRef(c.grantsItem);
+          out.grants = { item: c.grantsItem };
+        }
         return out;
       });
     gmStory.nodes[id] = { chapter, text, choices };
   }
 
   touchCurrentTale();
+  delete nodeDrafts[id]; // now identical to the saved node, so let selectGmNode fall back to gmStory again
   renderGmNodeList();
+  renderChoiceRows();
+  renderItemDefs();
   showToast("Passage saved.");
 });
 
@@ -1210,7 +1405,7 @@ document.getElementById("gm-playtest-btn").addEventListener("click", async () =>
   }
   mode = "gm-playtest";
   activeStory = gmStory;
-  state = { currentNode: "start", inventory: [] };
+  state = { currentNode: "start", inventory: [], history: [] };
   renderNode("start");
 });
 
@@ -1220,6 +1415,7 @@ document.getElementById("gm-export-btn").addEventListener("click", () => exportT
 document.getElementById("gm-rename-tale-btn").addEventListener("click", () => renameTale(currentTaleId));
 
 document.getElementById("gm-back-btn").addEventListener("click", () => {
+  nodeDrafts = {}; // leaving the editor: any unsaved passage edits are discarded here, by design
   hideAllPages();
   managerPage.hidden = false;
   renderManager();
