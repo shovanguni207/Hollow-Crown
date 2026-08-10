@@ -379,7 +379,7 @@ body {
 
 /* ===== Secondary / ghost button (title screen) ===== */
 .btn-ghost {
-  display: block;
+  display: none; /* [hidden] would otherwise be overridden by the unconditional rule below - see .modal-overlay for the same pattern */
   margin: 16px auto 0;
   font-family: var(--body);
   font-style: italic;
@@ -392,6 +392,7 @@ body {
   text-underline-offset: 3px;
   cursor: pointer;
 }
+.btn-ghost:not([hidden]) { display: block; }
 .btn-ghost:hover, .btn-ghost:focus-visible { color: var(--gold); }
 
 /* ===== Leave-tale link on story screen ===== */
@@ -410,6 +411,40 @@ body {
 .leave-link:hover, .leave-link:focus-visible { color: var(--blood); }
 
 .story-header { flex-wrap: wrap; gap: 8px; }
+
+.story-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Same pill shape/scale as .satchel-toggle, so both header-right actions
+   read as one visual family, but outlined rather than filled — "Go back"
+   is a reversal, not the default forward motion of the satchel's status
+   pill, so it sits a step quieter next to it. */
+.back-btn {
+  align-items: center;
+  gap: 5px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.back-btn:not([hidden]) { display: inline-flex; }
+.back-btn:hover, .back-btn:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+.back-icon { color: var(--blood); font-size: 0.9rem; line-height: 1; }
 
 /* ===== Grimoire (Game Master mode) ===== */
 .book:has(.gm-page:not([hidden])) { max-width: 760px; }
@@ -1006,10 +1041,36 @@ body {
   max-width: 560px;
 }
 
-.ledger-list {
+.item-defs-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* id field + its "Change id" action, sitting on one row instead of
+   stacking (the disabled input alone gave no visual cue this was an
+   editable field at all) */
+.item-id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+.item-id-row input {
+  margin-top: 0;
+  flex: 1;
+}
+.item-id-row .btn-tiny {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 7px 10px;
+}
+.item-id-row .btn-tiny:hover, .item-id-row .btn-tiny:focus-visible {
+  background: rgba(182, 137, 63, 0.18);
+  border-color: var(--gold-bright);
+  text-decoration: none;
 }
 
 .ledger-empty {
