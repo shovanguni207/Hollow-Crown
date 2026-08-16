@@ -764,36 +764,122 @@ const NodeGraph = (() => {
     if (scopeChapter !== null && label) label.textContent = scopeChapter;
   }
 
+  // ---- Canvas pan / pinch-zoom (background drag) -----------------------
+  // One tracked pointer pans; a second one turns the gesture into a pinch-
+  // zoom, anchored to the midpoint between the two touches (same anchoring
+  // idea as zoomAt() below, just anchored to a moving midpoint instead of
+  // a fixed cursor position, since fingers drift while pinching). Pointer
+  // Events already unify mouse/touch/pen, so a mouse drag is just the
+  // "one pointer" case — no separate mouse-only code path needed. State
+  // lives at this outer scope (rather than nested per-gesture closures
+  // like the old single-pointer version) because a second pointerdown
+  // fires as its own event while the first pointer's gesture is still in
+  // progress, and two independent closures can't coordinate a two-finger
+  // gesture between them.
+  let activePointers = new Map(); // pointerId -> {x, y} client coords
+  let panMode = null;             // "pan" | "pinch" | null
+  let panDragging = false;        // crossed the pan-vs-tap threshold yet?
+  let panStart = null;            // {x, y} client coords at pan gesture start
+  let panOriginX = 0, panOriginY = 0; // panX/panY at pan gesture start
+  let pinchStartDist = 0;
+  let pinchStartMid = null;       // client-space midpoint at pinch start
+  let pinchStartScale = 1;
+  let pinchOriginPanX = 0, pinchOriginPanY = 0;
+
+  function pointerDistance(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
+  function pointerMidpoint(p1, p2) { return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }; }
+
+  function beginPan(atClient) {
+    panMode = "pan";
+    panStart = atClient;
+    panOriginX = panX;
+    panOriginY = panY;
+  }
+
+  function beginPinch() {
+    const [p1, p2] = Array.from(activePointers.values());
+    panMode = "pinch";
+    pinchStartDist = pointerDistance(p1, p2);
+    pinchStartMid = pointerMidpoint(p1, p2);
+    pinchStartScale = scale;
+    pinchOriginPanX = panX;
+    pinchOriginPanY = panY;
+    panDragging = true;
+    viewportEl.classList.add("panning");
+  }
+
+  function attachViewportPanZoom() {
+    viewportEl.addEventListener("pointerdown", e => {
+      if (e.target.closest(".graph-node") || e.button !== 0) return;
+      viewportEl.setPointerCapture(e.pointerId);
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 2) {
+        beginPinch();
+      } else if (activePointers.size === 1) {
+        panDragging = false;
+        beginPan({ x: e.clientX, y: e.clientY });
+      }
+    });
+
+    viewportEl.addEventListener("pointermove", e => {
+      if (!activePointers.has(e.pointerId)) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (panMode === "pinch" && activePointers.size >= 2) {
+        const [p1, p2] = Array.from(activePointers.values());
+        const dist = pointerDistance(p1, p2);
+        const mid = pointerMidpoint(p1, p2);
+        const rect = viewportEl.getBoundingClientRect();
+        const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, pinchStartScale * (dist / pinchStartDist)));
+        const anchorX = pinchStartMid.x - rect.left, anchorY = pinchStartMid.y - rect.top;
+        const cx = (anchorX - pinchOriginPanX) / pinchStartScale;
+        const cy = (anchorY - pinchOriginPanY) / pinchStartScale;
+        const curX = mid.x - rect.left, curY = mid.y - rect.top;
+        scale = newScale;
+        panX = curX - cx * scale;
+        panY = curY - cy * scale;
+        applyTransform();
+      } else if (panMode === "pan") {
+        const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
+        if (!panDragging && Math.hypot(dx, dy) > 4) { panDragging = true; viewportEl.classList.add("panning"); }
+        if (!panDragging) return;
+        panX = panOriginX + dx;
+        panY = panOriginY + dy;
+        applyTransform();
+      }
+    });
+
+    function endPointer(e) {
+      if (!activePointers.has(e.pointerId)) return;
+      activePointers.delete(e.pointerId);
+      try { viewportEl.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+
+      if (activePointers.size === 1) {
+        // Dropped from two fingers to one — resume single-pointer panning
+        // from the remaining finger's current position rather than
+        // jumping back to wherever the two-finger gesture originally
+        // started.
+        const [remaining] = Array.from(activePointers.values());
+        panDragging = true; // already mid-gesture; skip re-crossing the threshold
+        beginPan(remaining);
+      } else if (activePointers.size === 0) {
+        panMode = null;
+        panDragging = false;
+        viewportEl.classList.remove("panning");
+      }
+    }
+    viewportEl.addEventListener("pointerup", endPointer);
+    viewportEl.addEventListener("pointercancel", endPointer);
+  }
+
   // ---- Static (attach-once) listeners: pan, zoom, add, search, breadcrumb ----
 
   function attachStaticListenersOnce() {
     if (wired) return;
     wired = true;
 
-    viewportEl.addEventListener("pointerdown", e => {
-      if (e.target.closest(".graph-node") || e.button !== 0) return;
-      const startX = e.clientX, startY = e.clientY;
-      const startPanX = panX, startPanY = panY;
-      let dragging = false;
-      viewportEl.setPointerCapture(e.pointerId);
-
-      function onMove(ev) {
-        const dx = ev.clientX - startX, dy = ev.clientY - startY;
-        if (!dragging && Math.hypot(dx, dy) > 4) { dragging = true; viewportEl.classList.add("panning"); }
-        if (!dragging) return;
-        panX = startPanX + dx;
-        panY = startPanY + dy;
-        applyTransform();
-      }
-      function onUp() {
-        viewportEl.releasePointerCapture(e.pointerId);
-        viewportEl.removeEventListener("pointermove", onMove);
-        viewportEl.removeEventListener("pointerup", onUp);
-        viewportEl.classList.remove("panning");
-      }
-      viewportEl.addEventListener("pointermove", onMove);
-      viewportEl.addEventListener("pointerup", onUp);
-    });
+    attachViewportPanZoom();
 
     // A mouse wheel only ever reports a vertical delta with no horizontal
     // component — so a plain vertical tick zooms, which is what a mouse
