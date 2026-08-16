@@ -28,6 +28,7 @@ body {
   color: var(--parchment);
   font-family: var(--body);
   min-height: 100vh;
+  min-height: 100dvh; /* accounts for mobile browser chrome (address bar); ignored by browsers that don't support dvh, falling back to the line above */
   padding: 32px 16px;
   position: relative;
   overflow-x: hidden;
@@ -860,6 +861,7 @@ body {
   top: 0;
   right: 0;
   height: 100vh;
+  height: 100dvh; /* see body's min-height comment above — same mobile-chrome issue */
   width: min(460px, 100vw);
   background: var(--parchment);
   color: var(--text);
@@ -1219,6 +1221,7 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; }
    specificity as the generic .page rule, source order lets it win. */
 .gm-map-page:not([hidden]) {
   height: calc(100vh - 64px); /* 64px = body's own top+bottom padding */
+  height: calc(100dvh - 64px); /* see body's min-height comment above — this is the one that actually mattered: with overflow:hidden locked on while the map is open, anything 100vh pushed below the visible (address-bar-showing) fold was simply unreachable, not just off-screen */
   min-height: 480px;
   display: flex;
   flex-direction: column;
