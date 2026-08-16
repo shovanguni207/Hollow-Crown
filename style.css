@@ -1,0 +1,1579 @@
+/* ===== Tokens ===== */
+:root {
+  --ink: #15110c;
+  --ink-soft: #211a12;
+  --parchment: #ece0c4;
+  --parchment-edge: #bd9a5c;
+  --gold: #b6893f;
+  --gold-bright: #dba94f;
+  --blood: #7c3230;
+  --text: #1c130a;
+  --text-muted: #52431f;
+  --surface-raised: #f6efdc;   /* cards, sit slightly above the page */
+  --surface-sunken: #e0d0a0;   /* inputs, sit slightly below the page */
+
+  --display: "Cinzel", serif;
+  --body: "EB Garamond", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% 20%, var(--ink-soft) 0%, var(--ink) 65%);
+  background-attachment: fixed;
+  color: var(--parchment);
+  font-family: var(--body);
+  min-height: 100vh;
+  padding: 32px 16px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* subtle ambient candle flicker behind the page */
+.candle-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 15%, rgba(219, 169, 79, 0.10), transparent 55%);
+  animation: flicker 6s ease-in-out infinite;
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.85; }
+  50% { opacity: 1; }
+  78% { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .candle-glow { animation: none; }
+}
+
+/* ===== Book / page shell ===== */
+.book {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.page {
+  background: var(--parchment);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 56px 48px;
+  box-shadow:
+    0 0 0 1px var(--parchment-edge),
+    0 30px 60px -20px rgba(0,0,0,0.7),
+    0 0 80px -10px rgba(219, 169, 79, 0.08);
+  position: relative;
+}
+
+/* torn/aged edge feel via inset border */
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(124, 50, 48, 0.18);
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .page { padding: 36px 24px; }
+}
+
+/* ===== Typography ===== */
+.eyebrow {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--blood);
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: 2.6rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 20px;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 440px;
+  margin: 0 auto 36px;
+}
+
+.hint {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 20px;
+  letter-spacing: 0.03em;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: block;
+  margin: 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 34px;
+  background: var(--blood);
+  border: 1px solid var(--gold);
+  color: var(--parchment);
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 6px 18px -6px rgba(124, 50, 48, 0.55);
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.btn::before, .btn::after {
+  content: "◆";
+  color: var(--gold-bright);
+  font-size: 0.6rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.btn::before { left: 12px; }
+.btn::after { right: 12px; }
+
+.btn:hover, .btn:focus-visible {
+  background: #93413c;
+  border-color: var(--gold-bright);
+  box-shadow: 0 8px 24px -6px rgba(124, 50, 48, 0.75);
+}
+.btn:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 3px; }
+
+/* ===== Story screen ===== */
+.story-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.25);
+  padding-bottom: 14px;
+  margin-bottom: 28px;
+}
+
+.chapter-label {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blood);
+}
+
+.satchel-toggle {
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.satchel-toggle:not([hidden]) { display: inline-flex; }
+.satchel-toggle:hover, .satchel-toggle:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+
+.satchel-icon { color: var(--blood); font-size: 0.68rem; }
+
+.satchel-panel {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: 0;
+  z-index: 30;
+  width: 260px;
+  max-width: calc(100vw - 88px);
+  background: linear-gradient(165deg, var(--surface-raised) 0%, var(--parchment) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  box-shadow:
+    0 18px 40px -12px rgba(21, 17, 12, 0.55),
+    0 0 0 4px rgba(182, 137, 63, 0.12),
+    inset 0 0 0 1px rgba(124, 50, 48, 0.14);
+  padding: 16px 18px 18px;
+}
+
+/* caret pointing back up at the toggle button that opened it */
+.satchel-panel::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 26px;
+  width: 13px;
+  height: 13px;
+  background: var(--surface-raised);
+  border-left: 1px solid var(--gold);
+  border-top: 1px solid var(--gold);
+  transform: rotate(45deg);
+}
+
+/* Below this width the header can wrap the toggle onto its own row, so a
+   right-anchored popup can no longer reliably line up under it. Center the
+   popup under the whole card instead of chasing the toggle's position. */
+@media (max-width: 560px) {
+  .satchel-panel {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100vw - 64px);
+    max-width: 320px;
+  }
+  .satchel-panel::before { display: none; }
+}
+
+.satchel-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin: 0 0 12px;
+}
+
+.satchel-panel-title::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold), transparent);
+}
+
+.satchel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.satchel-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.98rem;
+  color: var(--text);
+  padding: 6px 0;
+}
+
+.satchel-list li:not(:last-child) {
+  border-bottom: 1px solid rgba(124, 50, 48, 0.14);
+}
+
+.satchel-list li::before {
+  content: "◆";
+  color: var(--gold);
+  font-size: 0.6rem;
+}
+
+.passage-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.75;
+  margin: 0 0 36px;
+  color: var(--text);
+}
+
+/* illuminated drop cap — the signature element */
+.passage-text::first-letter {
+  font-family: var(--display);
+  font-size: 3.6rem;
+  font-weight: 600;
+  float: left;
+  line-height: 0.78;
+  padding: 4px 10px 0 0;
+  color: var(--blood);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.choice-btn {
+  text-align: left;
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 1.02rem;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-left: 3px solid var(--gold);
+  padding: 10px 8px 10px 18px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, padding-left 0.2s ease;
+}
+
+.choice-btn:hover, .choice-btn:focus-visible {
+  border-left-color: var(--blood);
+  background: rgba(124, 50, 48, 0.06);
+  padding-left: 24px;
+}
+.choice-btn:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+
+.choice-btn .locked-note {
+  display: block;
+  font-family: var(--display);
+  font-weight: 500;
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* ===== Ending screen ===== */
+.ending-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.9rem;
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.ending-text {
+  font-size: 1.12rem;
+  font-weight: 500;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--text);
+  margin: 0 0 36px;
+}
+
+#restart-btn { margin-top: 4px; }
+
+/* ===== Secondary / ghost button (title screen) ===== */
+.btn-ghost {
+  display: none; /* [hidden] would otherwise be overridden by the unconditional rule below - see .modal-overlay for the same pattern */
+  margin: 16px auto 0;
+  font-family: var(--body);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.94rem;
+  background: none;
+  border: none;
+  color: var(--blood);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.btn-ghost:not([hidden]) { display: block; }
+.btn-ghost:hover, .btn-ghost:focus-visible { color: var(--gold); }
+
+/* ===== Leave-tale link on story screen ===== */
+.leave-link {
+  background: none;
+  border: none;
+  font-family: var(--body);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  margin-right: 12px;
+}
+.leave-link:hover, .leave-link:focus-visible { color: var(--blood); }
+
+.story-header { flex-wrap: wrap; gap: 8px; }
+
+.story-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Same pill shape/scale as .satchel-toggle, so both header-right actions
+   read as one visual family, but outlined rather than filled — "Go back"
+   is a reversal, not the default forward motion of the satchel's status
+   pill, so it sits a step quieter next to it. */
+.back-btn {
+  align-items: center;
+  gap: 5px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.back-btn:not([hidden]) { display: inline-flex; }
+.back-btn:hover, .back-btn:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+.back-icon { color: var(--blood); font-size: 0.9rem; line-height: 1; }
+
+/* ===== Grimoire (Game Master mode) ===== */
+.gm-header { margin-bottom: 28px; }
+
+.gm-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.7rem;
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.gm-intro {
+  font-size: 0.98rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.gm-intro code {
+  font-family: var(--body);
+  font-style: italic;
+  background: rgba(182, 137, 63, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.gm-subhead {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin: 0 0 12px;
+}
+
+/* ===== Form controls ===== */
+.gm-label {
+  display: block;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.gm-label input[type="text"],
+.gm-label textarea {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 9px 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.gm-label input[type="text"]:focus,
+.gm-label textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.gm-label textarea { resize: vertical; }
+
+/* The passage id is disabled (it's a reference key, not free text — see
+   renameItemId's comment on why ids can't just be typed over), but it was
+   inheriting the exact same "sunken, ready to type into" treatment as
+   every editable field around it. Flattening it — no inset shadow, no
+   depth, a dashed border instead of a solid one — reads as "this is
+   display-only" at a glance instead of inviting a click. */
+.gm-label input[type="text"]:disabled {
+  background: transparent;
+  border: 1px dashed var(--parchment-edge);
+  box-shadow: none;
+  color: var(--text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+}
+
+/* Also quiets the field's own footprint a touch, since it's the least-used
+   field in the form but was otherwise claiming the same vertical weight
+   as Chapter Label right below it. */
+.gm-label:has(input:disabled) { margin-bottom: 12px; }
+
+.gm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.94rem;
+  color: var(--text);
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.gm-ending-fields { margin-bottom: 6px; }
+
+.gm-choices-block {
+  border-top: 1px solid rgba(124, 50, 48, 0.25);
+  padding-top: 16px;
+  margin-top: 6px;
+}
+
+.gm-choices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gm-choice-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(21, 17, 12, 0.16);
+}
+
+.gm-choice-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.gm-choice-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.gm-choice-chevron {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--gold);
+  font-size: 0.72rem;
+  transition: transform 0.15s ease;
+}
+.gm-choice-card.expanded .gm-choice-chevron { transform: rotate(90deg); }
+
+.gm-choice-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.94rem;
+  color: var(--text);
+}
+
+.gm-choice-summary .n {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin-right: 6px;
+}
+
+.gm-choice-summary .placeholder { font-style: italic; color: var(--text-muted); }
+.gm-choice-summary .arrow { color: var(--text-muted); font-style: italic; }
+
+.gm-choice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 14px 16px;
+  border-top: 1px solid rgba(124, 50, 48, 0.22);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+.gm-choice-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.gm-choice-field input {
+  min-width: 0;
+  margin-top: 5px;
+  font-family: var(--body);
+  font-size: 0.92rem;
+  text-transform: none;
+  letter-spacing: normal;
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 8px 10px;
+  color: var(--text);
+}
+
+.gm-choice-field input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.gm-remove-choice {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--blood);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.gm-remove-choice:hover { text-decoration: underline; }
+
+.gm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn-small {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--text);
+  padding: 9px 17px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-small:hover, .btn-small:focus-visible {
+  background: rgba(182, 137, 63, 0.18);
+  border-color: var(--gold-bright);
+}
+
+.btn-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.btn-gold:hover, .btn-gold:focus-visible {
+  background: var(--gold-bright);
+  border-color: var(--gold-bright);
+}
+
+/* destructive-tier: quieter than primary, but unmistakably "be careful" */
+.btn-danger {
+  border-color: var(--blood);
+  color: var(--blood);
+}
+.btn-danger:hover, .btn-danger:focus-visible {
+  background: rgba(124, 50, 48, 0.12);
+  border-color: var(--blood);
+}
+
+.file-btn { display: inline-block; }
+
+.gm-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid rgba(124, 50, 48, 0.2);
+  margin-top: 26px;
+  padding-top: 20px;
+}
+
+.gm-footer-actions .btn { margin: 0; }
+
+.tale-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.btn-tiny {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.btn-tiny:hover, .btn-tiny:focus-visible { color: var(--blood); text-decoration: underline; }
+
+/* ===== Manager page: the tale library ===== */
+.manager-page { max-width: 720px; }
+
+.manager-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.tale-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.tale-list-empty {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.tale-card {
+  min-width: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(21, 17, 12, 0.16);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tale-card-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--text);
+  margin: 0 0 2px;
+  word-break: break-word;
+}
+
+.tale-card-meta {
+  font-size: 0.84rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+.tale-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.tale-card-actions .btn-tiny {
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  padding: 6px 10px;
+  color: var(--text);
+}
+.tale-card-actions .btn-tiny:hover {
+  border-color: var(--gold);
+  background: rgba(182, 137, 63, 0.16);
+  text-decoration: none;
+  color: var(--text);
+}
+.tale-card-actions .btn-tiny.danger {
+  color: var(--blood);
+  border-color: var(--blood);
+}
+.tale-card-actions .btn-tiny.danger:hover {
+  background: rgba(124, 50, 48, 0.12);
+  border-color: var(--blood);
+  color: var(--blood);
+}
+
+/* ===== Passage drawer (slides over the map to edit one passage) =====
+   Same open/close mechanics as the toast further down: hidden is removed
+   first so there's something laid out to animate, then .open is added a
+   frame later so the transform genuinely transitions instead of jumping
+   straight to its end state (see openGmDrawer/closeGmDrawer in ui-core.js). */
+.gm-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(21, 17, 12, 0.62);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+.gm-drawer-backdrop:not([hidden]) { display: block; }
+.gm-drawer-backdrop.open { opacity: 1; }
+
+.gm-drawer {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(460px, 100vw);
+  background: var(--parchment);
+  color: var(--text);
+  border-left: 1px solid var(--gold);
+  box-shadow: -20px 0 50px -14px rgba(0, 0, 0, 0.6);
+  z-index: 95;
+  transform: translateX(100%);
+  transition: transform 0.26s ease;
+}
+.gm-drawer:not([hidden]) { display: flex; }
+.gm-drawer.open { transform: translateX(0); }
+
+@media (max-width: 640px) {
+  .gm-drawer { width: 100vw; border-left: none; }
+}
+
+.gm-drawer-header {
+  flex: 0 0 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.25);
+}
+
+.gm-drawer-header-text { min-width: 0; }
+
+.gm-drawer-eyebrow {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin: 0 0 4px;
+}
+
+.gm-drawer-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--text);
+  margin: 0;
+  word-break: break-word;
+}
+.gm-drawer-title.placeholder { font-style: italic; color: var(--text-muted); font-weight: 500; }
+
+.gm-drawer-close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.gm-drawer-close:hover, .gm-drawer-close:focus-visible {
+  color: var(--blood);
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.16);
+}
+
+.gm-drawer-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 22px 24px 32px;
+}
+
+/* The passage-text textarea is the primary writing surface in a narrower
+   single-column drawer now (it used to share a wider two-column page with
+   more horizontal room) — rows="5" alone reads as cramped here, so give
+   it real height regardless of the row count. */
+#gm-text { min-height: 170px; }
+
+/* ===== Shared modal (replaces alert/confirm/prompt) ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(21, 17, 12, 0.72);
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-overlay:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: var(--parchment);
+  color: var(--text);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 6px;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+  padding: 26px 24px 20px;
+  max-width: 380px;
+  width: 100%;
+}
+
+.modal-message {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+
+.modal-input {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 9px 11px;
+  margin-bottom: 20px;
+}
+.modal-input:not([hidden]) { display: block; }
+.modal-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ===== Toast (quiet, self-dismissing confirmation) ===== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--ink-soft);
+  color: var(--parchment);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.84rem;
+  letter-spacing: 0.03em;
+  padding: 12px 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 200;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ===== Item Ledger (Grimoire): auto-generated registry of every item in the tale ===== */
+/* Wrapped in its own soft, recessed panel — rather than just another
+   divided section of the same form — so it reads as a distinct kind of
+   content: tale-wide reference data, not more fields for the passage
+   currently being edited above it. */
+.gm-ledger {
+  margin-top: 28px;
+  padding: 18px 18px 20px;
+  background: rgba(21, 17, 12, 0.035);
+  border: 1px solid rgba(124, 50, 48, 0.16);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 4px rgba(21, 17, 12, 0.05);
+}
+
+.ledger-intro {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0 0 14px;
+  max-width: 560px;
+}
+
+.item-defs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* id field + its "Change id" action, sitting on one row instead of
+   stacking (the disabled input alone gave no visual cue this was an
+   editable field at all) */
+.item-id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+.item-id-row input {
+  margin-top: 0;
+  flex: 1;
+}
+.item-id-row .btn-tiny {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 7px 10px;
+}
+.item-id-row .btn-tiny:hover, .item-id-row .btn-tiny:focus-visible {
+  background: rgba(182, 137, 63, 0.18);
+  border-color: var(--gold-bright);
+  text-decoration: none;
+}
+
+.ledger-empty {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.ledger-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  padding: 9px 14px;
+}
+
+.ledger-row .item-name {
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.94rem;
+  color: var(--text);
+  margin-right: 4px;
+}
+
+.item-mark {
+  color: var(--gold);
+  font-size: 0.62rem;
+  margin-right: 6px;
+}
+
+.tag-pill {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  color: var(--text-muted);
+}
+
+.tag-pill.warning {
+  border-color: var(--blood);
+  color: var(--blood);
+}
+
+/* extra spacing needed only when the pill sits inline within running text
+   (the flex-based .ledger-row already spaces its children via gap) */
+.gm-choice-summary .tag-pill { margin-left: 8px; }
+
+/* ===== Item-picker autocomplete (Requires/Grants fields in a choice) ===== */
+.item-autocomplete {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  box-shadow: 0 10px 24px -8px rgba(21, 17, 12, 0.4);
+}
+
+.item-autocomplete-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.14);
+  text-align: left;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.item-autocomplete-row:last-child { border-bottom: none; }
+.item-autocomplete-row:hover,
+.item-autocomplete-row:focus-visible {
+  background: rgba(182, 137, 63, 0.16);
+}
+
+.item-autocomplete-id {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* ===== Satchel panel corner flourishes (Pathfinder-style carved-frame touch) ===== */
+.corner-flourish {
+  position: absolute;
+  color: var(--gold);
+  font-size: 0.55rem;
+  opacity: 0.85;
+}
+.corner-flourish.tl { top: 8px; left: 10px; }
+.corner-flourish.tr { top: 8px; right: 10px; }
+
+/* The satchel panel's flourish sits against a gradient with a full carved
+   border on all sides, which gives it enough contrast to read clearly at
+   0.55rem. The drawer header is a flatter, single-tone surface, so the
+   same size all but disappeared there — sized and placed to actually
+   register against the flat parchment. */
+.gm-drawer-header .corner-flourish {
+  font-size: 0.85rem;
+  top: 10px;
+  left: 12px;
+  opacity: 0.9;
+}
+/* ===== Story Map (visual node graph) ===== */
+.book:has(.gm-map-page:not([hidden])) { max-width: min(1400px, 96vw); }
+
+/* No page-level scrolling while the map is open — panning/zooming happens
+   entirely inside the graph canvas via CSS transform instead. */
+body:has(.gm-map-page:not([hidden])) { overflow: hidden; }
+
+/* This page swaps the usual eyebrow/title/intro header for one compact
+   nav row, and stretches to fill the viewport so the canvas — not chrome —
+   gets the space. Same padding-override approach as elsewhere: same
+   specificity as the generic .page rule, source order lets it win. */
+.gm-map-page:not([hidden]) {
+  height: calc(100vh - 64px); /* 64px = body's own top+bottom padding */
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px;
+}
+
+.gm-map-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(182, 137, 63, 0.3);
+}
+.gm-map-topbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.gm-map-topbar .eyebrow { margin: 0; }
+.gm-map-topbar .tale-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.gm-map-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.gm-map-breadcrumb:not([hidden]) {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+.gm-map-breadcrumb #gm-map-breadcrumb-label {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.gm-map-search-input {
+  font-family: var(--body);
+  font-size: 0.85rem;
+  background: var(--surface-sunken);
+  color: var(--text);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 5px 9px;
+  width: 180px;
+}
+.gm-map-search-input:focus { outline: 2px solid var(--gold-bright); outline-offset: 1px; }
+
+/* The one place in the app that steps outside the parchment surface — a
+   dark "architect's table" window let into the page, echoing the ink half
+   of "ink and candlelight" rather than the candlelight half. Node cards
+   inside stay on --surface-raised/--gold so they read as the same
+   illuminated-manuscript language as the rest of the app. flex:1 is what
+   actually makes the canvas claim the leftover space; overflow:hidden
+   because content now pans via transform rather than native scrolling. */
+.graph-viewport {
+  flex: 1 1 auto;
+  min-height: 0; /* required for a flex child to actually shrink instead of overflowing */
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: grab;
+  background:
+    repeating-linear-gradient(0deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
+    var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--gold),
+    inset 0 0 50px rgba(0, 0, 0, 0.55);
+}
+.graph-viewport.panning { cursor: grabbing; }
+
+.graph-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.gm-map-statusbar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 2px;
+  border-top: 1px solid rgba(182, 137, 63, 0.3);
+}
+.gm-map-statusbar button {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid rgba(182, 137, 63, 0.4);
+  border-radius: 4px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.gm-map-statusbar button:hover, .gm-map-statusbar button:focus-visible {
+  color: var(--text);
+  border-color: var(--gold-bright);
+  background: rgba(219, 169, 79, 0.1);
+}
+
+.graph-wires, .graph-live-layer {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.graph-wire {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+.graph-wire.dangling {
+  stroke: var(--blood);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.graph-wire.temp {
+  stroke: var(--gold-bright);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.graph-dot { fill: var(--gold-bright); }
+.graph-dot.dangling { fill: var(--blood); }
+
+.graph-dangling-label {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 11px;
+  fill: var(--blood);
+}
+
+.graph-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  font-family: var(--body);
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--gold);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 0 0 1px rgba(182, 137, 63, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.5);
+  padding: 14px 20px 12px 30px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.graph-node:hover, .graph-node:focus-visible {
+  border-color: var(--gold-bright);
+  box-shadow:
+    inset 0 0 0 1px rgba(182, 137, 63, 0.35),
+    0 8px 18px rgba(0, 0, 0, 0.55);
+}
+.graph-node.dragging {
+  cursor: grabbing;
+  z-index: 5;
+  transform: rotate(-1.5deg) scale(1.03);
+  border-color: var(--gold-bright);
+  box-shadow:
+    inset 0 0 0 1px rgba(182, 137, 63, 0.35),
+    0 16px 32px rgba(0, 0, 0, 0.6);
+}
+/* While a link is being dragged out from this card's connector, dim it
+   slightly so the eye follows the wire being drawn, not the source card. */
+.graph-node.connecting {
+  filter: grayscale(0.5) brightness(0.82);
+}
+
+.graph-node.is-ending { border-color: var(--blood); }
+.graph-node.is-orphan { border-style: dashed; opacity: 0.75; }
+
+/* Corner ribbon marks a passage as the start or an ending — reusing the
+   app's existing gold (primary/confirm) and blood (final/destructive)
+   semantics rather than introducing new hues outside the palette. */
+.graph-node-ribbon {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 28px;
+  height: 28px;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: var(--gold-bright);
+}
+.graph-node.is-ending .graph-node-ribbon { background: var(--blood); }
+
+/* Six-dot grip, purely a draggability affordance (the whole card is the
+   drag surface already) — a small radial-gradient dot grid rather than
+   an icon asset. */
+.graph-node-handle {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 30px;
+  background-image: radial-gradient(circle, var(--gold) 1.6px, transparent 1.8px);
+  background-size: 7px 9px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.graph-node-title, .graph-node-sub {
+  display: block;
+  min-width: 0; /* lets a flex-item span actually truncate instead of forcing the card wider */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Meta-stats row: counts at a glance without opening the passage editor,
+   using small-caps text labels (matching the rest of the app's typographic
+   button language) with the same ◆ flourish already used on the satchel
+   panel, rather than a new icon set. */
+.graph-node-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 1px solid rgba(182, 137, 63, 0.25);
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.graph-node-meta .meta-stat strong {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+.graph-node-meta .meta-stat i {
+  font-style: italic;
+  color: var(--text-muted);
+}
+.graph-node-meta .meta-sep {
+  color: var(--gold);
+  font-size: 0.68rem;
+}
+
+/* Chapter-group nodes get a stacked-card look — a thin gold-outlined
+   "second card" peeking out behind, signaling "this contains more than
+   one passage" before you've even read the count. */
+.graph-node.graph-node-group {
+  box-shadow:
+    8px 8px 0 -3px var(--ink),
+    8px 8px 0 -2px var(--gold),
+    inset 0 0 0 1px rgba(182, 137, 63, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.graph-node.graph-node-group:hover, .graph-node.graph-node-group:focus-visible {
+  box-shadow:
+    8px 8px 0 -3px var(--ink),
+    8px 8px 0 -2px var(--gold-bright),
+    inset 0 0 0 1px rgba(182, 137, 63, 0.35),
+    0 8px 18px rgba(0, 0, 0, 0.55);
+}
+.graph-node.graph-node-group .graph-node-title::before {
+  content: "\2767  ";
+  color: var(--gold);
+}
+
+.graph-wire.external {
+  stroke: var(--gold-bright);
+  stroke-width: 2;
+  stroke-dasharray: 2 4;
+}
+.graph-dangling-label.external { fill: var(--gold-bright); }
+
+.graph-node-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.32rem;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.graph-node-sub {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 1.02rem;
+  color: var(--text-muted);
+}
+.graph-node.is-ending .graph-node-sub { color: var(--blood); }
+.graph-node-sub.placeholder { opacity: 0.7; }
+
+/* Draggable connector handle — grabbing this (instead of the card body)
+   spins a new link out to another passage, or a new passage entirely.
+   Radial-gradient highlight + layered ring gives it some depth ("ports
+   should feel tactile") without needing an icon asset. */
+.graph-connector {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, var(--gold-bright), var(--gold) 72%);
+  border: 2px solid var(--surface-raised);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    inset 0 0 3px rgba(0, 0, 0, 0.45);
+  cursor: crosshair;
+  touch-action: none;
+}
+.graph-connector:hover { background: radial-gradient(circle at 35% 32%, var(--blood), var(--blood) 72%); }
+
+.graph-node.is-dimmed { opacity: 0.2; }
+
+@media (max-width: 640px) {
+  .book:has(.gm-map-page:not([hidden])) { max-width: 96vw; }
+  .gm-map-page:not([hidden]) { padding: 10px 14px; min-height: 380px; }
+  .gm-map-toolbar { gap: 8px; }
+  .gm-map-search-input { width: 120px; }
+}
