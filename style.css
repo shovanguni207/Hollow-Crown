@@ -522,26 +522,6 @@ body {
 
 .gm-label textarea { resize: vertical; }
 
-/* The passage id is disabled (it's a reference key, not free text — see
-   renameItemId's comment on why ids can't just be typed over), but it was
-   inheriting the exact same "sunken, ready to type into" treatment as
-   every editable field around it. Flattening it — no inset shadow, no
-   depth, a dashed border instead of a solid one — reads as "this is
-   display-only" at a glance instead of inviting a click. */
-.gm-label input[type="text"]:disabled {
-  background: transparent;
-  border: 1px dashed var(--parchment-edge);
-  box-shadow: none;
-  color: var(--text-muted);
-  font-style: italic;
-  cursor: not-allowed;
-}
-
-/* Also quiets the field's own footprint a touch, since it's the least-used
-   field in the form but was otherwise claiming the same vertical weight
-   as Chapter Label right below it. */
-.gm-label:has(input:disabled) { margin-bottom: 12px; }
-
 .gm-checkbox {
   display: flex;
   align-items: center;
@@ -608,14 +588,21 @@ body {
 .gm-choice-summary {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  overflow-y: hidden;
   white-space: nowrap;
   font-family: var(--body);
   font-weight: 500;
   font-size: 0.94rem;
   color: var(--text);
+  /* Scrolls (wheel/trackpad/touch) when content overflows, but with no
+     visible scrollbar — a thin themed one still rendered with a full
+     track + arrow buttons on some browser/OS combinations, which ate up
+     its own row in a UI this compact. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.gm-choice-summary::-webkit-scrollbar { display: none; }
 
 .gm-choice-summary .n {
   font-family: var(--display);
@@ -1072,25 +1059,26 @@ body {
 
 /* id field + its "Change id" action, sitting on one row instead of
    stacking (the disabled input alone gave no visual cue this was an
-   editable field at all) */
-.item-id-row {
+   editable field at all). Shared between the item ledger's id field and
+   the passage id field below — same pattern, same code. */
+.id-row {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 5px;
 }
-.item-id-row input {
+.id-row input {
   margin-top: 0;
   flex: 1;
 }
-.item-id-row .btn-tiny {
+.id-row .btn-tiny {
   flex: 0 0 auto;
   white-space: nowrap;
   border: 1px solid var(--gold);
   border-radius: 3px;
   padding: 7px 10px;
 }
-.item-id-row .btn-tiny:hover, .item-id-row .btn-tiny:focus-visible {
+.id-row .btn-tiny:hover, .id-row .btn-tiny:focus-visible {
   background: rgba(182, 137, 63, 0.18);
   border-color: var(--gold-bright);
   text-decoration: none;
@@ -1308,6 +1296,15 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; }
   border-radius: 6px;
   overflow: hidden;
   cursor: grab;
+  /* Node cards and the connector dot already opt out of native touch
+     gestures (see .graph-node/.graph-connector below) — the canvas
+     background they sit on needs the same, or a touch-drag here is
+     ambiguous to the browser (pan the graph? scroll/zoom the page?) and
+     it can hijack or stall the gesture deciding. This is what makes
+     one-finger pan and two-finger pinch (see attachStaticListenersOnce)
+     fully owned by this file's own transform math instead of fighting
+     the browser's native page zoom. */
+  touch-action: none;
   background:
     repeating-linear-gradient(0deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
     repeating-linear-gradient(90deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
