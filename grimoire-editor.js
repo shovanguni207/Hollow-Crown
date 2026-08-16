@@ -127,6 +127,75 @@ function toggleEndingFields() {
 }
 gmIsEndingInput.addEventListener("change", toggleEndingFields);
 
+/* ---- Renaming a passage's id -------------------------------------------
+   Mirrors renameItemId (grimoire-items.js) for the same reason: an id is
+   a reference key threaded through several places at once — every other
+   passage's "leads to" choices, the map's saved layout position, and (if
+   one happens to exist) a pending draft — so changing it can't be a plain
+   text edit, it has to fan out to everywhere that reference lives.
+   Returns how many choice references got updated, purely for the
+   confirmation toast. */
+function renameNodeId(oldId, newId) {
+  gmStory.nodes[newId] = gmStory.nodes[oldId];
+  delete gmStory.nodes[oldId];
+
+  if (gmStory.layout && gmStory.layout[oldId]) {
+    gmStory.layout[newId] = gmStory.layout[oldId];
+    delete gmStory.layout[oldId];
+  }
+
+  let refCount = 0;
+  Object.values(gmStory.nodes).forEach(node => {
+    (node.choices || []).forEach(choice => {
+      if (choice.to === oldId) {
+        choice.to = newId;
+        refCount++;
+      }
+    });
+  });
+
+  Object.values(nodeDrafts).forEach(draft => {
+    (draft.choices || []).forEach(c => {
+      if (c.to === oldId) { c.to = newId; refCount++; }
+    });
+  });
+  if (nodeDrafts[oldId]) {
+    nodeDrafts[newId] = nodeDrafts[oldId];
+    delete nodeDrafts[oldId];
+  }
+
+  if (gmSelectedNodeId === oldId) gmSelectedNodeId = newId;
+
+  return refCount;
+}
+
+document.getElementById("gm-change-node-id-btn").addEventListener("click", async () => {
+  const oldId = gmSelectedNodeId;
+  if (oldId === "start") {
+    await showAlert("The start passage's id can't be changed \u2014 the engine (and every playtest) looks for it by that exact id.");
+    return;
+  }
+
+  const newId = await promptForNewId({
+    subjectLabel: gmChapterInput.value.trim() || oldId,
+    currentId: oldId,
+    existingIds: Object.keys(gmStory.nodes)
+  });
+  if (!newId) return;
+
+  const refCount = renameNodeId(oldId, newId);
+
+  // Fix up the still-open form's own choices too, not just the stored
+  // data — same as grimoire-items.js does for item ids — in case this
+  // passage has a choice that loops back to itself.
+  editingChoices.forEach(c => { if (c.to === oldId) c.to = newId; });
+
+  touchCurrentTale();
+  gmNodeIdInput.value = newId;
+  renderChoiceRows();
+  showToast("Passage id updated" + (refCount ? " \u2014 " + refCount + " reference" + (refCount === 1 ? "" : "s") + " fixed up." : "."));
+});
+
 // ---- Choice cards (accordion: collapsed summary, tap to edit) -------------------------------
 // itemPicker: true marks the two fields that reference an item id, so
 // makeChoiceField knows to attach the autocomplete dropdown to them.
