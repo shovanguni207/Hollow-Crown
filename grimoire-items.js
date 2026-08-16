@@ -145,7 +145,7 @@ function buildItemDefCard(id, usage) {
       idField.textContent = "Item id";
 
       const idRow = document.createElement("div");
-      idRow.className = "item-id-row";
+      idRow.className = "id-row";
 
       const idInput = document.createElement("input");
       idInput.type = "text";
@@ -158,22 +158,12 @@ function buildItemDefCard(id, usage) {
       changeIdBtn.className = "btn-tiny";
       changeIdBtn.textContent = "Change id";
       changeIdBtn.addEventListener("click", async () => {
-        const raw = await showPrompt(
-          "New id for \u201c" + (def.label || id) + "\u201d (letters and numbers only). Every choice referencing \u201c" + id + "\u201d will be updated automatically.",
-          id
-        );
-        if (raw === null || !raw.trim()) return;
-
-        const newId = slugify(raw);
-        if (!newId) {
-          await showAlert("That id isn't valid once cleaned up to letters and numbers, try something else.");
-          return;
-        }
-        if (newId === id) return;
-        if (gmStory.items[newId]) {
-          await showAlert("An item with id \u201c" + newId + "\u201d already exists.");
-          return;
-        }
+        const newId = await promptForNewId({
+          subjectLabel: def.label || id,
+          currentId: id,
+          existingIds: Object.keys(gmStory.items)
+        });
+        if (!newId) return;
 
         const refCount = renameItemId(id, newId);
 
