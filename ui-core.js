@@ -114,6 +114,35 @@ function showPrompt(message, defaultValue = "") {
   return openModal({ message, isPrompt: true, defaultValue, showCancel: true });
 }
 
+/* ---- Shared "change id" prompt --------------------------------------
+   Both the item ledger's "Change id" and the passage id's "Change id"
+   need the exact same prompt-then-validate sequence (ask, slugify, reject
+   empty/unchanged/duplicate) before whichever fan-out actually happens —
+   renameItemId in grimoire-items.js, renameNodeId in grimoire-editor.js.
+   Centralizing that sequence here means the validation rules (and their
+   wording) can't quietly drift apart between the two over time. Returns
+   the cleaned new id, or null if cancelled/invalid/unchanged/taken (an
+   explanatory alert has already been shown in the latter two cases). */
+async function promptForNewId({ subjectLabel, currentId, existingIds }) {
+  const raw = await showPrompt(
+    "New id for \u201c" + subjectLabel + "\u201d (letters and numbers only). Every reference to \u201c" + currentId + "\u201d will be updated automatically.",
+    currentId
+  );
+  if (raw === null || !raw.trim()) return null;
+
+  const newId = slugify(raw);
+  if (!newId) {
+    await showAlert("That id isn't valid once cleaned up to letters and numbers, try something else.");
+    return null;
+  }
+  if (newId === currentId) return null;
+  if (existingIds.includes(newId)) {
+    await showAlert("\u201c" + newId + "\u201d is already in use.");
+    return null;
+  }
+  return newId;
+}
+
 const toastEl = document.getElementById("toast");
 let toastTimer = null;
 function showToast(message) {
