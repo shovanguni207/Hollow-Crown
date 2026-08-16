@@ -1577,3 +1577,26 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; }
   .gm-map-toolbar { gap: 8px; }
   .gm-map-search-input { width: 120px; }
 }
+
+/* A landscape phone is often wider than 640px (so the block above never
+   kicks in) but still much shorter than a portrait one — the actual
+   constraint there is height, not width. The graph-viewport already has
+   min-height:0 so it's free to shrink as a flex child, but .gm-map-page's
+   own 480px floor (desktop) / 380px floor (the block above) was forcing
+   the page itself taller than the real visible area regardless, pushing
+   the statusbar below an unreachable, unscrollable fold (see
+   body:has(.gm-map-page...) further up — page scroll is deliberately off
+   while the map is open, since panning/zooming happens inside the canvas
+   instead). Dropping the floor entirely here lets the whole layout
+   compress to fit; the small min-height on .graph-viewport just keeps
+   the canvas from disappearing outright on a truly tiny window. */
+@media (max-height: 520px) {
+  .gm-map-page:not([hidden]) {
+    min-height: 0;
+    padding: 8px 16px;
+  }
+  .gm-map-topbar { padding-bottom: 4px; }
+  .gm-map-toolbar { padding: 6px 0; gap: 8px; }
+  .gm-map-statusbar { padding: 6px 0 2px; }
+  .graph-viewport { min-height: 120px; }
+}
