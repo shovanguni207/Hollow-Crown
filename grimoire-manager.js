@@ -150,14 +150,70 @@ function openTale(id) {
   currentTaleId = id;
   gmStory = tales[id].story;
   expandedItemId = null;
+  expandedQuestId = null;
+  gmInspectorSelection = null;
   nodeDrafts = {};
   gmEditorLoaded = false;
   hideAllPages();
   gmMapPage.hidden = false;
   updateGmTaleBar();
   renderItemDefs();
+  setGmView("graph"); // always land on the graph, whichever tool was open last time
   NodeGraph.render({ resetView: true });
 }
+
+/* ---- View switcher: Graph / Quests / World Map --------------------
+   Three tools sharing one tale rather than three separate destinations —
+   see the discuss-before-implement conversation this came out of. Only one
+   tool's toolbar + canvas pair is visible at a time; the tale identity row,
+   Contents sidebar, and passage drawer stay mounted underneath regardless
+   of which tab is active, since quests and map locations both reference
+   passages the same way the graph does.
+   Each tool gets a render call on first switch-to (a tool that's never
+   been opened for this tale has nothing built yet) — QuestEditor/MapEditor
+   are expected to no-op safely if called again on a later switch, same as
+   NodeGraph.render() already does. */
+const GM_VIEWS = {
+  graph:  { tab: "gm-view-tab-graph",  toolbar: "gm-graph-toolbar",    viewport: "graph-viewport" },
+  quests: { tab: "gm-view-tab-quests", toolbar: "gm-quest-toolbar",    viewport: "quest-viewport" },
+  map:    { tab: "gm-view-tab-map",    toolbar: "gm-worldmap-toolbar", viewport: "map-editor-viewport" }
+};
+
+function setGmView(view) {
+  if (!GM_VIEWS[view]) view = "graph";
+
+  // The passage drawer only makes sense over the Graph canvas — leaving it
+  // open while switching to Quests/World Map used to just leave it floating
+  // there (hideAllPages()/page-swap logic never runs on a tab switch, only
+  // on a full page change, so nothing was ever telling it to close). Route
+  // through the same commit-then-close path the drawer's own close button
+  // uses, so an in-progress passage edit still gets saved rather than
+  // silently discarded.
+  if (view !== "graph" && !gmPage.hidden) closePassageDrawer();
+
+  gmActiveView = view;
+
+  Object.keys(GM_VIEWS).forEach(key => {
+    const cfg = GM_VIEWS[key];
+    const active = key === view;
+    document.getElementById(cfg.tab).classList.toggle("active", active);
+    document.getElementById(cfg.tab).setAttribute("aria-selected", String(active));
+    document.getElementById(cfg.toolbar).hidden = !active;
+    document.getElementById(cfg.viewport).hidden = !active;
+  });
+
+  // Inspector is Quests-only for now — see quest-editor.js. Toggled here
+  // rather than folded into GM_VIEWS since it isn't a per-view canvas, it's
+  // a second panel alongside one specific view's canvas.
+  document.getElementById("quest-inspector").hidden = (view !== "quests");
+
+  if (view === "quests") QuestEditor.render();
+  if (view === "map") MapEditor.render();
+}
+
+Object.keys(GM_VIEWS).forEach(key => {
+  document.getElementById(GM_VIEWS[key].tab).addEventListener("click", () => setGmView(key));
+});
 
 // Opens the passage drawer over the map for one node — the map stays
 // mounted and visible (dimmed) underneath instead of being swapped away.
@@ -194,6 +250,13 @@ function touchCurrentTale() {
   tales[currentTaleId].updatedAt = Date.now();
   saveTales();
   renderItemDefs();
+  // Same reasoning as renderItemDefs() above: a rename elsewhere (a
+  // passage or item id changing) can silently update a quest condition's
+  // target out from under an already-rendered card. Only worth doing while
+  // Quests is actually the visible tab — QuestEditor.render() runs anyway
+  // the moment someone switches to it (see setGmView), so this is purely
+  // about not showing stale text if they're looking at it *right now*.
+  if (gmActiveView === "quests") QuestEditor.render();
 }
 
 document.getElementById("gm-map-export-btn").addEventListener("click", () => exportTale(currentTaleId));
@@ -205,4 +268,11 @@ document.getElementById("gm-map-back-btn").addEventListener("click", () => {
   hideAllPages();
   managerPage.hidden = false;
   renderManager();
+});
+
+// The phone-width block's own "All tales" button (see .gm-mobile-block in
+// style.css) — just forwards to the real back button above rather than
+// duplicating its logic, since the two need to do exactly the same thing.
+document.getElementById("gm-mobile-block-back").addEventListener("click", () => {
+  document.getElementById("gm-map-back-btn").click();
 });
