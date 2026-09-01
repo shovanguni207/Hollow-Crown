@@ -39,8 +39,7 @@ function renderInventory() {
     satchelList.appendChild(li);
   });
 
-  if (count === 0) satchelPanel.hidden = true;
-}
+  if (count === 0) satchelPanel.hidden = true}
 
 satchelToggle.addEventListener("click", () => {
   satchelPanel.hidden = !satchelPanel.hidden;
