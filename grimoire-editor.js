@@ -10,6 +10,7 @@
 // re-fetched by id on every keystroke/save, same pattern as player.js's
 // play-screen refs) ----
 const gmNodeIdInput = document.getElementById("gm-node-id");
+const gmNodeGroupInput = document.getElementById("gm-node-group");
 const gmChapterInput = document.getElementById("gm-chapter");
 const gmTextInput = document.getElementById("gm-text");
 const gmIsEndingInput = document.getElementById("gm-is-ending");
@@ -93,6 +94,7 @@ function selectGmNode(id) {
   const node = gmStory.nodes[id] || { chapter: "", text: "", choices: [] };
 
   gmNodeIdInput.value = id;
+  updateGroupField();
 
   if (draft) {
     gmChapterInput.value = draft.chapter;
@@ -164,6 +166,11 @@ function renameNodeId(oldId, newId) {
     delete nodeDrafts[oldId];
   }
 
+  // Quest objectives can complete on "reach this passage" — same fan-out
+  // problem items solve with renameItemId, one level removed. See
+  // QuestEditor.renameConditionTargets (quest-editor.js).
+  refCount += QuestEditor.renameConditionTargets("reach-passage", oldId, newId);
+
   if (gmSelectedNodeId === oldId) gmSelectedNodeId = newId;
 
   return refCount;
@@ -194,6 +201,53 @@ document.getElementById("gm-change-node-id-btn").addEventListener("click", async
   gmNodeIdInput.value = newId;
   renderChoiceRows();
   showToast("Passage id updated" + (refCount ? " \u2014 " + refCount + " reference" + (refCount === 1 ? "" : "s") + " fixed up." : "."));
+});
+
+/* ---- Group membership: read-only display + "Move to group" fallback ----
+   Dragging a passage onto a group card on the map (graph.js) is the
+   primary way to nest one — this is the fallback for when that's awkward
+   (deeply nested, off-screen, or just faster to type). Unlike chapter/
+   text/choices, groupId isn't part of the draft system: it's committed to
+   gmStory immediately, same as "Change id" already does for passage and
+   item ids, rather than waiting for an explicit Save. */
+function updateGroupField() {
+  const node = gmStory.nodes[gmSelectedNodeId];
+  const groupId = node ? node.groupId : null;
+  gmNodeGroupInput.value = groupId && gmStory.groups[groupId]
+    ? NodeGraph.groupPathLabel(gmStory, groupId)
+    : "\u2014 top level, no group \u2014";
+}
+
+document.getElementById("gm-change-node-group-btn").addEventListener("click", async () => {
+  const id = gmSelectedNodeId;
+  if (id === "start") {
+    await showAlert("The start passage can't be moved into a group \u2014 it has to stay reachable at the top level for the map (and every playtest) to find it.");
+    return;
+  }
+
+  const groupIds = Object.keys(gmStory.groups || {});
+  if (groupIds.length === 0) {
+    await showAlert("This tale has no groups yet \u2014 create one from the map's \u201c+ New group\u201d button first, then come back here to move this passage into it.");
+    return;
+  }
+
+  const listing = groupIds.map(gid => gid + "  \u2014  " + NodeGraph.groupPathLabel(gmStory, gid)).join("\n");
+  const raw = await showPrompt(
+    "Group id to move this passage into (leave blank for the top level, no group):\n\n" + listing,
+    gmStory.nodes[id].groupId || ""
+  );
+  if (raw === null) return;
+
+  const trimmed = raw.trim();
+  if (trimmed && !gmStory.groups[trimmed]) {
+    await showAlert("No group with that id exists. Check the listing and try again.");
+    return;
+  }
+
+  gmStory.nodes[id].groupId = trimmed || null;
+  touchCurrentTale();
+  updateGroupField();
+  showToast(trimmed ? "Moved into \u201c" + gmStory.groups[trimmed].label + "\u201d." : "Moved to the top level.");
 });
 
 // ---- Choice cards (accordion: collapsed summary, tap to edit) -------------------------------
@@ -300,62 +354,27 @@ function makeChoiceField(spec, value, onChange) {
 
 /* ---- Item-picker dropdown: suggests defined items as you type into
    a "requires"/"grants" field, so authors reference existing items by
-   name instead of retyping (and potentially mistyping) an id. ---- */
+   name instead of retyping (and potentially mistyping) an id. Thin
+   wrapper around the shared attachAutocomplete (ui-core.js) — this just
+   supplies "match against item id/label" and "write the picked id back
+   into this input." ---- */
 function attachItemAutocomplete(field, input) {
-  const dropdown = document.createElement("div");
-  dropdown.className = "item-autocomplete";
-  dropdown.hidden = true;
-  field.appendChild(dropdown);
-
-  function matches() {
-    const query = input.value.trim().toLowerCase();
-    const ids = Object.keys((gmStory && gmStory.items) || {});
-    return ids
-      .filter(id => !query || id.toLowerCase().includes(query) || (gmStory.items[id].label || "").toLowerCase().includes(query))
-      .slice(0, 8);
-  }
-
-  function open() {
-    const ids = matches();
-    dropdown.innerHTML = "";
-
-    if (ids.length === 0) {
-      dropdown.hidden = true;
-      return;
+  attachAutocomplete(
+    field,
+    input,
+    (query) => {
+      const ids = Object.keys((gmStory && gmStory.items) || {});
+      const q = query.toLowerCase();
+      return ids
+        .filter(id => !q || id.toLowerCase().includes(q) || (gmStory.items[id].label || "").toLowerCase().includes(q))
+        .slice(0, 8)
+        .map(id => ({ id, label: gmStory.items[id].label || id }));
+    },
+    (id) => {
+      input.value = id;
+      input.dispatchEvent(new Event("input"));
     }
-
-    ids.forEach(id => {
-      const def = gmStory.items[id];
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "item-autocomplete-row";
-
-      const name = document.createElement("span");
-      name.textContent = def.label || id;
-      row.appendChild(name);
-
-      const idTag = document.createElement("span");
-      idTag.className = "item-autocomplete-id";
-      idTag.textContent = id;
-      row.appendChild(idTag);
-
-      // mousedown (not click) fires before the input's blur, so the value commits reliably
-      row.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        input.value = id;
-        input.dispatchEvent(new Event("input"));
-        dropdown.hidden = true;
-      });
-
-      dropdown.appendChild(row);
-    });
-
-    dropdown.hidden = false;
-  }
-
-  input.addEventListener("focus", open);
-  input.addEventListener("input", open);
-  closeOnOutsideClick(dropdown, [input], () => { dropdown.hidden = true; });
+  );
 }
 
 document.getElementById("gm-add-choice").addEventListener("click", () => {
@@ -397,10 +416,16 @@ function commitCurrentPassage() {
   const isEnding = gmIsEndingInput.checked;
   const chapter = gmChapterInput.value.trim();
   const text = gmTextInput.value.trim();
+  // groupId lives outside the draft system (set immediately by drag-to-nest
+  // or "Move to group", not deferred to Save) — carry whatever's already on
+  // the stored node forward, or this rebuild would silently drop it back to
+  // ungrouped on every single save.
+  const groupId = (gmStory.nodes[id] && gmStory.nodes[id].groupId) || null;
 
   if (isEnding) {
     gmStory.nodes[id] = {
       chapter,
+      groupId,
       end: true,
       endingType: gmEndingTypeInput.value.trim() || "The End",
       text: text
@@ -423,7 +448,7 @@ function commitCurrentPassage() {
         }
         return out;
       });
-    gmStory.nodes[id] = { chapter, text, choices };
+    gmStory.nodes[id] = { chapter, groupId, text, choices };
   }
 
   touchCurrentTale();
@@ -464,7 +489,7 @@ document.getElementById("gm-map-new-node").addEventListener("click", async () =>
     enterPassageEditor(id);
     return;
   }
-  gmStory.nodes[id] = { chapter: NodeGraph.currentChapter() || "", text: "", choices: [] };
+  gmStory.nodes[id] = { chapter: "", groupId: NodeGraph.currentContainer(), text: "", choices: [] };
   NodeGraph.placeNewNode(id); // drops it at the current center of the visible viewport
   touchCurrentTale();
   NodeGraph.render();
