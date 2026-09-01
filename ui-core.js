@@ -43,10 +43,31 @@ function hideAllPages() {
    snapping straight to its end state. Closing reverses that, then
    waits out the transition before re-hiding (so the drawer can't be
    clicked while it's sliding away off-screen).
+
+   That's the narrow-viewport story. On a wide viewport the drawer
+   is CSS-docked as a real column next to the map (see the
+   `.gm-drawer` media query in style.css) rather than a fixed overlay
+   — there's nothing to slide in from off-screen and nothing behind
+   it that needs dimming, so isWideDrawerLayout() below skips the
+   backdrop and the animation entirely and just toggles `hidden`
+   directly. The 1000px breakpoint here has to stay in sync with the
+   one in style.css by hand — there's no shared source of truth for
+   it, since a CSS media query and a JS matchMedia call can't read
+   from the same place without introducing build tooling this project
+   deliberately doesn't have (see the top-of-file file:// note).
    ========================================================= */
+function isWideDrawerLayout() {
+  return window.matchMedia("(min-width: 1000px)").matches;
+}
+
 function openGmDrawer() {
-  gmDrawerBackdrop.hidden = false;
   gmPage.hidden = false;
+  if (isWideDrawerLayout()) {
+    gmDrawerBackdrop.hidden = true; // docked as a column — nothing behind it to dim
+    gmPage.classList.add("open");
+    return;
+  }
+  gmDrawerBackdrop.hidden = false;
   requestAnimationFrame(() => {
     gmDrawerBackdrop.classList.add("open");
     gmPage.classList.add("open");
@@ -56,6 +77,11 @@ function openGmDrawer() {
 function closeGmDrawer() {
   gmDrawerBackdrop.classList.remove("open");
   gmPage.classList.remove("open");
+  if (isWideDrawerLayout()) {
+    gmDrawerBackdrop.hidden = true;
+    gmPage.hidden = true; // collapses straight back to a two-column layout — no slide-out to wait on
+    return;
+  }
   setTimeout(() => {
     gmDrawerBackdrop.hidden = true;
     gmPage.hidden = true;
@@ -170,6 +196,63 @@ function closeOnOutsideClick(panelEl, triggerEls, onClose) {
   });
 }
 
+/* ---- Shared inline autocomplete dropdown --------------------------------
+   One suggestions widget, several backing lists: a choice card's "requires"/
+   "grants" fields suggest defined items (grimoire-editor.js), and a quest
+   objective's condition target suggests either items or passages depending
+   on the condition's type (quest-editor.js). Rather than each feature
+   building its own dropdown/mousedown/outside-click plumbing, they all call
+   this with a getMatches(query) -> [{id, label}] function and an onPick(id)
+   callback, and this owns the actual open/filter/select mechanics.
+   mousedown (not click) on a suggestion fires before the input's blur, so
+   the picked value commits reliably even though the dropdown is about to
+   disappear out from under the cursor. */
+function attachAutocomplete(field, input, getMatches, onPick) {
+  const dropdown = document.createElement("div");
+  dropdown.className = "item-autocomplete";
+  dropdown.hidden = true;
+  field.appendChild(dropdown);
+
+  function open() {
+    const options = getMatches(input.value.trim());
+    dropdown.innerHTML = "";
+
+    if (!options || options.length === 0) {
+      dropdown.hidden = true;
+      return;
+    }
+
+    options.forEach(opt => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "item-autocomplete-row";
+
+      const name = document.createElement("span");
+      name.textContent = opt.label;
+      row.appendChild(name);
+
+      const idTag = document.createElement("span");
+      idTag.className = "item-autocomplete-id";
+      idTag.textContent = opt.id;
+      row.appendChild(idTag);
+
+      row.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        onPick(opt.id);
+        dropdown.hidden = true;
+      });
+
+      dropdown.appendChild(row);
+    });
+
+    dropdown.hidden = false;
+  }
+
+  input.addEventListener("focus", open);
+  input.addEventListener("input", open);
+  closeOnOutsideClick(dropdown, [input], () => { dropdown.hidden = true; });
+}
+
 /* ---- Shared accordion card ----------------------------------------------
    Both "item definitions" and "choices" are collapsible cards with the same
    shape: a toggle header (chevron + one-line summary + optional remove
@@ -220,4 +303,4 @@ function buildAccordionCard({ isExpanded, onToggle, buildSummary, removeLabel, o
   }
 
   return card;
-}
+}s
