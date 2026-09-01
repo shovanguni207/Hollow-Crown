@@ -29,9 +29,12 @@ let tales = loadTales();
 let currentTaleId = null;
 let gmStory = null;          // always === tales[currentTaleId].story while editing, shape {items, nodes}
 let gmSelectedNodeId = "start";
+let gmActiveView = "graph"; // "graph" | "quests" | "map" — which of the three tools is on screen; see setGmView() in grimoire-manager.js
 let editingChoices = [];
 let expandedChoiceIndex = null; // which choice card (if any) is expanded in the accordion
 let expandedItemId = null;      // which item definition (if any) is expanded
+let expandedQuestId = null;     // which quest card (if any) is expanded, in the Quests view
+let gmInspectorSelection = null; // { kind: "quest", id } | { kind: "objective", questId, objectiveId } | null — whatever the Quests-view Inspector panel is currently showing (see quest-editor.js)
 
 // In-progress edits per passage, keyed by node id. Switching passages in the
 // sidebar used to always reload from gmStory (the last *saved* state),
