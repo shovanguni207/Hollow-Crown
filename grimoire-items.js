@@ -67,6 +67,11 @@ function renameItemId(oldId, newId) {
     });
   });
 
+  // Quest objectives can complete on "obtain this item" — same fan-out
+  // problem, one level removed. See QuestEditor.renameConditionTargets
+  // (quest-editor.js).
+  refCount += QuestEditor.renameConditionTargets("obtain-item", oldId, newId);
+
   return refCount;
 }
 
