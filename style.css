@@ -1450,7 +1450,18 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
    is the only view with a third column for now (see setGmView), so this
    isn't part of the generic per-view viewport toggling; it's shown/hidden
    directly alongside the Quests view specifically. */
-.quest-inspector {
+/* Mirrors .gm-contents-sidebar on the opposite edge — same fixed width,
+   same raised surface, border on the inward-facing side instead. Quests
+   is the only view with a third column for now (see setGmView), so this
+   isn't part of the generic per-view viewport toggling; it's shown/hidden
+   directly alongside the Quests view specifically.
+   :not([hidden]) — same reason every other view-toggled panel in this file
+   needs it: an unconditional `display` here beats the browser's default
+   [hidden]{display:none} regardless of specificity, since author rules
+   always outrank the UA stylesheet. Without this guard the panel renders
+   in every view, not just Quests, no matter what setGmView() sets .hidden
+   to. */
+.quest-inspector:not([hidden]) {
   flex: 0 0 220px;
   display: flex;
   flex-direction: column;
