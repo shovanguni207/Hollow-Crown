@@ -11,13 +11,19 @@
 
 // ---- Play state: whichever story is currently being read/played ----
 let activeStory = DEFAULT_STORY;
-let mode = "play"; // "play" | "gm-playtest"
+let mode = "play"; // "play" | "gm-playtest" | "library-play"
 
 let state = {
   currentNode: "start",
-  inventory: [],   // array of item ids
-  history: []      // stack of {currentNode, inventory} snapshots taken before each choice, for "Go back"
+  inventory: [],       // array of item ids
+  history: [],          // stack of {currentNode, inventory} snapshots taken before each choice, for "Go back"
+  visitedNodes: new Set(["start"]), // every passage id reached this playthrough — for quest "reach-passage" tracking; only ever grows, even across "Go back", since visiting a passage is a fact of the playthrough that back-navigation doesn't erase
+  manualMarks: new Set()            // "<questId>:<objectiveId>" keys the reader has manually checked off — persists across "Go back" too, since it's the reader's own action, not something derived from story state
 };
+// This exact shape also gets built fresh at the start of every real play
+// session — see freshPlayState() in player.js, which every entry point
+// (title screen, editor playtest, library play) calls instead of each
+// writing its own copy of this literal.
 
 /* =========================================================
    GRIMOIRE DATA — a library of many tales, each its own story object.
