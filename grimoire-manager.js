@@ -23,6 +23,12 @@ function renderManager() {
     const card = document.createElement("div");
     card.className = "tale-card";
 
+    const flourish = document.createElement("span");
+    flourish.className = "corner-flourish tl";
+    flourish.textContent = "\u25c6";
+    flourish.setAttribute("aria-hidden", "true");
+    card.appendChild(flourish);
+
     const title = document.createElement("p");
     title.className = "tale-card-title";
     title.textContent = tale.title || "Untitled tale";
@@ -35,27 +41,119 @@ function renderManager() {
       " · edited " + formatDate(tale.updatedAt || Date.now());
     card.appendChild(meta);
 
-    const actions = document.createElement("div");
-    actions.className = "tale-card-actions";
+    // Play — full width, the one action that works on every device
+    // (the editor itself is desktop-only, see .gm-mobile-block), so it
+    // gets the most prominent spot and its own color rather than
+    // competing with the many other gold buttons on this screen.
+    const playBtn = document.createElement("button");
+    playBtn.type = "button";
+    playBtn.className = "tale-card-play-btn";
+    const playIcon = document.createElement("span");
+    playIcon.className = "tale-card-btn-icon";
+    playIcon.textContent = "\u25b6";
+    playIcon.setAttribute("aria-hidden", "true");
+    playBtn.appendChild(playIcon);
+    playBtn.appendChild(document.createTextNode("Play Tale"));
+    playBtn.addEventListener("click", () => playTaleFromLibrary(id));
+    card.appendChild(playBtn);
 
-    actions.appendChild(makeCardButton("Open", () => openTale(id)));
-    actions.appendChild(makeCardButton("Rename", () => renameTale(id)));
-    actions.appendChild(makeCardButton("Duplicate", () => duplicateTale(id)));
-    actions.appendChild(makeCardButton("Export", () => exportTale(id)));
-    actions.appendChild(makeCardButton("Delete", () => deleteTale(id), true));
+    // Open Editor + overflow ("\u22ef") menu holding the housekeeping
+    // actions (Rename/Duplicate/Export/Delete) that don't need to be
+    // one-tap-visible on every card.
+    const secondaryRow = document.createElement("div");
+    secondaryRow.className = "tale-card-secondary-row";
 
-    card.appendChild(actions);
+    const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "tale-card-open-btn";
+    const openIcon = document.createElement("span");
+    openIcon.className = "tale-card-btn-icon";
+    openIcon.textContent = "\u270e";
+    openIcon.setAttribute("aria-hidden", "true");
+    openBtn.appendChild(openIcon);
+    openBtn.appendChild(document.createTextNode("Open Editor"));
+    openBtn.addEventListener("click", () => openTale(id));
+    secondaryRow.appendChild(openBtn);
+
+    const overflowBtn = document.createElement("button");
+    overflowBtn.type = "button";
+    overflowBtn.className = "tale-card-overflow-btn";
+    overflowBtn.textContent = "\u22ef";
+    overflowBtn.setAttribute("aria-label", "More actions for " + (tale.title || "this tale"));
+    overflowBtn.setAttribute("aria-expanded", "false");
+
+    const overflowMenu = document.createElement("div");
+    overflowMenu.className = "tale-card-overflow-menu";
+    overflowMenu.hidden = true;
+    overflowMenu.appendChild(makeOverflowMenuItem("Rename", () => renameTale(id), overflowMenu));
+    overflowMenu.appendChild(makeOverflowMenuItem("Duplicate", () => duplicateTale(id), overflowMenu));
+    overflowMenu.appendChild(makeOverflowMenuItem("Export", () => exportTale(id), overflowMenu));
+    overflowMenu.appendChild(makeOverflowMenuItem("Delete", () => deleteTale(id), overflowMenu, true));
+
+    overflowBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = overflowMenu.hidden;
+      // Only one menu open at a time — close any other card's before opening this one.
+      document.querySelectorAll(".tale-card-overflow-menu:not([hidden])").forEach(m => { m.hidden = true; });
+      overflowMenu.hidden = !willOpen;
+      overflowBtn.setAttribute("aria-expanded", String(willOpen));
+    });
+
+    secondaryRow.appendChild(overflowBtn);
+    secondaryRow.appendChild(overflowMenu);
+    card.appendChild(secondaryRow);
+
     listEl.appendChild(card);
   });
 }
 
-function makeCardButton(label, onClick, danger = false) {
+// One listener, registered once at load — NOT per-card via
+// closeOnOutsideClick (ui-core.js), which is fine for one-off static
+// elements like the satchel panel but wrong here: renderManager() rebuilds
+// every card from scratch on every rename/duplicate/delete/import, and
+// closeOnOutsideClick attaches a fresh document-level listener each time
+// it's called, so a per-card registration would leak one stale listener,
+// referencing detached DOM, on every single render. This checks all open
+// menus against wherever the click landed instead.
+document.addEventListener("click", (e) => {
+  document.querySelectorAll(".tale-card-overflow-menu:not([hidden])").forEach(menu => {
+    if (menu.contains(e.target)) return;
+    const toggle = menu.previousElementSibling;
+    if (toggle && toggle.contains(e.target)) return;
+    menu.hidden = true;
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+  });
+});
+
+function makeOverflowMenuItem(label, onClick, menuEl, danger) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "btn-tiny" + (danger ? " danger" : "");
+  btn.className = "tale-card-overflow-item" + (danger ? " danger" : "");
   btn.textContent = label;
-  btn.addEventListener("click", onClick);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuEl.hidden = true;
+    onClick();
+  });
   return btn;
+}
+
+// The mobile-friendly path: the Grimoire editor itself is desktop-only
+// (see .gm-mobile-block in index.html), but reading a tale never needed to
+// be, so this launches straight into the player without ever opening the
+// editor — currentTaleId/gmStory are untouched, and mode "library-play"
+// (see player.js's backToStoryOrigin) routes "Leave"/"Restart" back here
+// instead of into an editor a phone user can't reach anyway.
+async function playTaleFromLibrary(id) {
+  const story = tales[id].story;
+  if (!story.nodes.start) {
+    await showAlert("This tale needs a passage with the id \u2018start\u2019 before it can be played.");
+    return;
+  }
+  mode = "library-play";
+  activeStory = story;
+  state = freshPlayState();
+  renderNode("start");
 }
 
 async function createTale() {
@@ -207,7 +305,18 @@ function setGmView(view) {
   // a second panel alongside one specific view's canvas.
   document.getElementById("quest-inspector").hidden = (view !== "quests");
 
-  if (view === "quests") QuestEditor.render();
+  // Contents sidebar is shared chrome, but what it shows isn't — a
+  // passage/group tree makes sense for Graph, a quest list makes sense for
+  // Quests. QuestEditor.render() populates its own version as part of its
+  // normal render pass; everywhere else, restore the passage tree (World
+  // Map has no location list yet, so it gets the same fallback until it
+  // does).
+  if (view === "quests") {
+    QuestEditor.render();
+  } else {
+    NodeGraph.renderContentsSidebar();
+    document.getElementById("gm-contents-heading").textContent = "Contents";
+  }
   if (view === "map") MapEditor.render();
 }
 
