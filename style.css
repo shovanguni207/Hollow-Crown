@@ -12,6 +12,8 @@
   --surface-raised: #f6efdc;   /* cards, sit slightly above the page */
   --surface-sunken: #e0d0a0;   /* inputs, sit slightly below the page */
   --surface-warm-light: #faf1d9; /* a lighter, warmer cream — used where a field needs to read as "light" without going pale/neutral (see the quest objective block) */
+  --forest: #3f4a2e;           /* one deliberate exception to the gold/blood accent scheme — reserved for a tale's own "Play" action specifically, so it doesn't visually compete with the many other gold buttons on this screen */
+  --forest-bright: #55643f;
 
   --display: "Cinzel", serif;
   --body: "EB Garamond", serif;
@@ -206,6 +208,276 @@ body {
 }
 
 .satchel-icon { color: var(--blood); font-size: 0.68rem; }
+
+/* Quest toggle — same pill as satchel-toggle, gold instead of blood for
+   the icon (blood's reserved for danger/destructive elsewhere in this
+   app; a quest tracker isn't that). */
+.quest-toggle {
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.quest-toggle:not([hidden]) { display: inline-flex; }
+.quest-toggle:hover, .quest-toggle:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+.quest-toggle-icon { color: var(--gold); font-size: 0.7rem; }
+
+/* Popover chrome — same box/caret treatment as .satchel-panel — no
+   explicit `display` here on purpose, exactly like .satchel-panel:
+   block-level children stack fine without flex, which sidesteps the
+   [hidden]-specificity trap entirely rather than needing a :not([hidden])
+   guard to dodge it. Narrow-viewport only now — see the media query
+   below and the one on #quest-toggle-anchor. Named .quest-tracker-popover,
+   not .quest-panel: that name collided with the Grimoire Quests editor's
+   own unrelated .quest-panel wrapper (CSS classes are global), which
+   broke that screen entirely once this rule's absolute-positioning
+   applied to it too. */
+.quest-tracker-popover {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: 0;
+  z-index: 30;
+  width: 300px;
+  max-width: calc(100vw - 88px);
+  background: linear-gradient(165deg, var(--surface-raised) 0%, var(--parchment) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  box-shadow:
+    0 18px 40px -12px rgba(21, 17, 12, 0.55),
+    0 0 0 4px rgba(182, 137, 63, 0.12),
+    inset 0 0 0 1px rgba(124, 50, 48, 0.14);
+  padding: 16px 18px 18px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.quest-tracker-popover::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 26px;
+  width: 13px;
+  height: 13px;
+  background: var(--surface-raised);
+  border-left: 1px solid var(--gold);
+  border-top: 1px solid var(--gold);
+  transform: rotate(45deg);
+}
+@media (max-width: 560px) {
+  .quest-tracker-popover {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100vw - 64px);
+    max-width: 320px;
+  }
+  .quest-tracker-popover::before { display: none; }
+}
+
+.quest-tracker-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 12px;
+}
+.quest-tracker-title::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold), transparent);
+}
+
+/* ---- Persistent journal (wide viewports) — sits beside .book in
+   .reading-area (see index.html). Reader can always see it, no tap
+   needed; the popover above is the narrow-viewport fallback instead of
+   this. Both are driven by the same data (updateQuestUI() in player.js
+   populates #quest-panel-list and #quest-journal-list together), so
+   there's exactly one source of truth even though there are two
+   presentations. ---- */
+/* Below the breakpoint, .reading-area is a plain block and .book centers
+   itself the old way (margin:0 auto) — no journal in the layout at all
+   at this width, see the media query further down. */
+.reading-area { width: 100%; }
+.book { margin: 0 auto; }
+
+.quest-journal {
+  display: none; /* narrow-viewport default; see the media query below */
+  width: 240px;
+  position: relative;
+  background: linear-gradient(165deg, var(--surface-raised) 0%, var(--parchment) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  box-shadow:
+    0 20px 45px -18px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(124, 50, 48, 0.12);
+  padding: 22px 18px;
+  max-height: calc(100vh - 64px);
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+}
+/* Grid, not flex, and specifically a THIRD, empty, mirrored column —
+   this is the actual fix, not just a different way of centering. A flex
+   row centering "the group" (journal + book together) means the book's
+   own position always depends on whether the journal exists — hide/show
+   the journal and the book visibly shifts, which is exactly the bug this
+   replaced. A 3-column grid (gutter | book | gutter) has no such
+   dependency: both outer columns are the same `1fr` track, so they're
+   ALWAYS equal width — including when the left one is empty and the
+   right one has content, or vice versa. The book (middle column) is
+   therefore centered by construction, not by any centering logic that
+   has to account for what else is on the page. The empty right column
+   only exists to be that mirror; nothing is ever placed in it. */
+@media (min-width: 1200px) {
+  .reading-area {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 620px) minmax(260px, 1fr);
+    align-items: start;
+  }
+  .book { grid-column: 2; margin: 0; }
+  .quest-journal:not([hidden]) {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+    display: block;
+  }
+  /* The header popover becomes redundant once the journal has room to
+     exist — hidden outright here regardless of its own [hidden] state,
+     so the satchel toggle goes back to being the header's only occupant,
+     same as before quests existed. */
+  #quest-toggle-anchor { display: none; }
+}
+
+.quest-journal-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.22);
+}
+
+/* ---- Content shared between both presentations ---- */
+.quest-tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quest-tracker-quest-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.94rem;
+  color: var(--text);
+  margin: 0 0 3px;
+}
+.quest-tracker-complete-badge {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--forest);
+}
+.quest-tracker-quest-desc {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.quest-tracker-objectives {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quest-tracker-objective {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+/* Manual objectives get a real button (clickable checkbox); auto-tracked
+   ones get the same visual glyph but as an inert span — see the JS
+   comment in buildQuestListInto (player.js) for why only one of the two
+   is a <button>. */
+.quest-tracker-check {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--forest);
+  padding: 0;
+  cursor: default;
+}
+button.quest-tracker-check { cursor: pointer; }
+button.quest-tracker-check:hover, button.quest-tracker-check:focus-visible {
+  border-color: var(--gold);
+}
+.quest-tracker-objective.done .quest-tracker-check {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--surface-raised);
+}
+.quest-tracker-objective.done .quest-tracker-check::before { content: "\2713"; }
+
+.quest-tracker-objective-text-wrap { flex: 1 1 auto; min-width: 0; }
+.quest-tracker-objective-text {
+  font-family: var(--body);
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.4;
+}
+.quest-tracker-objective.done .quest-tracker-objective-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(82, 67, 31, 0.4);
+}
+.quest-tracker-objective-hint {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+}
 
 .satchel-panel {
   position: absolute;
@@ -419,6 +691,14 @@ body {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* Positioning context for a toggle+panel pair — see the HTML comment on
+   .header-popover-anchor for why this replaced a shared right:0 off the
+   whole header (it only worked by coincidence with a single toggle). */
+.header-popover-anchor {
+  position: relative;
+  display: inline-flex;
 }
 
 /* Same pill shape/scale as .satchel-toggle, so both header-right actions
@@ -804,7 +1084,20 @@ body {
 .btn-tiny:hover, .btn-tiny:focus-visible { color: var(--blood); text-decoration: underline; }
 
 /* ===== Manager page: the tale library ===== */
-.manager-page { max-width: 720px; }
+/* A carved-wood-and-gold-trim outer frame around this page specifically —
+   ring effect built from stacked box-shadows (no image assets in this
+   project) rather than a plain border, so it composites with .page's own
+   existing shadow list instead of replacing it. */
+.manager-page {
+  max-width: 720px;
+  box-shadow:
+    0 0 0 1px var(--parchment-edge),
+    0 0 0 4px var(--gold),
+    0 0 0 10px var(--ink-soft),
+    0 0 0 11px var(--gold),
+    0 30px 60px -20px rgba(0, 0, 0, 0.7),
+    0 0 80px -10px rgba(219, 169, 79, 0.08);
+}
 
 .manager-actions {
   display: flex;
@@ -825,12 +1118,13 @@ body {
 }
 
 .tale-card {
+  position: relative; /* anchors the corner-flourish */
   min-width: 0;
   background: var(--surface-raised);
   border: 1px solid var(--gold);
   border-radius: 6px;
   box-shadow: 0 3px 10px rgba(21, 17, 12, 0.16);
-  padding: 18px;
+  padding: 20px 18px 18px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -852,11 +1146,126 @@ body {
   margin: 0 0 14px;
 }
 
-.tale-card-actions {
+/* Play — full width, deliberately not gold (see the --forest token
+   comment in the root block) so it reads as this card's one unmistakable
+   "go" action. */
+.tale-card-play-btn {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
   margin-top: auto;
+  background: var(--forest);
+  border: 1px solid var(--forest);
+  border-radius: 4px;
+  padding: 11px 14px;
+  color: var(--surface-raised);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.tale-card-play-btn:hover, .tale-card-play-btn:focus-visible {
+  background: var(--forest-bright);
+  border-color: var(--forest-bright);
+}
+
+.tale-card-btn-icon { font-size: 0.75em; }
+
+.tale-card-secondary-row {
+  position: relative; /* anchors the overflow menu */
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tale-card-open-btn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tale-card-open-btn:hover, .tale-card-open-btn:focus-visible {
+  border-color: var(--gold);
+  background: rgba(182, 137, 63, 0.12);
+}
+
+.tale-card-overflow-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  background: transparent;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.tale-card-overflow-btn:hover, .tale-card-overflow-btn:focus-visible,
+.tale-card-overflow-btn[aria-expanded="true"] {
+  border-color: var(--gold);
+  background: rgba(182, 137, 63, 0.12);
+  color: var(--text);
+}
+
+/* Opens upward, right-aligned above the "\u22ef" button — the row it's
+   anchored to sits at the bottom of the card, so opening downward would
+   frequently spill past the card (or the grid row) below it.
+   :not([hidden]) — the recurring bug in this file: an unconditional
+   `display` here beats the browser's default [hidden]{display:none}
+   regardless of specificity, since author rules always outrank the UA
+   stylesheet. Without this every card's menu renders open at once,
+   which is exactly what shipped last time this got missed. */
+.tale-card-overflow-menu:not([hidden]) {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 5px;
+  box-shadow: 0 8px 20px rgba(21, 17, 12, 0.28);
+  padding: 5px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+}
+
+.tale-card-overflow-item {
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.tale-card-overflow-item:hover, .tale-card-overflow-item:focus-visible {
+  background: rgba(182, 137, 63, 0.16);
+}
+.tale-card-overflow-item.danger { color: var(--blood); }
+.tale-card-overflow-item.danger:hover, .tale-card-overflow-item.danger:focus-visible {
+  background: rgba(124, 50, 48, 0.12);
 }
 
 .tale-card-actions .btn-tiny {
@@ -1254,8 +1663,34 @@ body {
   left: 12px;
   opacity: 0.9;
 }
+/* Same reasoning as the drawer header above: a flat parchment surface,
+   not the satchel panel's gradient, so it needs the larger size to
+   actually register. */
+.tale-card .corner-flourish {
+  font-size: 0.85rem;
+  top: 10px;
+  left: 12px;
+  opacity: 0.7;
+}
 /* ===== Story Map (visual node graph) ===== */
 .book:has(.gm-map-page:not([hidden])) { max-width: none; }
+
+/* Same escape hatch, extended to .reading-area now that .book lives
+   inside it: a grid item's rendered size is bounded by its grid TRACK,
+   not just its own CSS, so .book's max-width:none above stopped having
+   any effect once its column was capped at minmax(0, 620px) — that cap
+   exists specifically to keep prose at a comfortable reading width, which
+   is exactly the constraint the full-viewport editor must escape, not
+   inherit. Reverting to a plain block here (regardless of the
+   min-width:1200px grid breakpoint below — :has() specificity beats a
+   plain class selector regardless of which media query either lives in)
+   makes .book's own max-width:none meaningful again. */
+.reading-area:has(.gm-map-page:not([hidden])) {
+  display: block;
+}
+.reading-area:has(.gm-map-page:not([hidden])) > .book {
+  margin: 0;
+}
 
 /* No page-level scrolling while the map is open — panning/zooming happens
    entirely inside the graph canvas via CSS transform instead. Padding
@@ -1462,7 +1897,7 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
    in every view, not just Quests, no matter what setGmView() sets .hidden
    to. */
 .quest-inspector:not([hidden]) {
-  flex: 0 0 220px;
+  flex: 0 0 260px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1528,12 +1963,18 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   border-top: 1px solid rgba(124, 50, 48, 0.18);
 }
 .quest-inspector-section-title:first-of-type { border-top: none; padding-top: 0; margin-top: 4px; }
+.quest-inspector-section-warn {
+  color: var(--blood);
+  letter-spacing: normal;
+  text-transform: none;
+}
 
 .quest-inspector-refs {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
 }
+.quest-inspector-ref-row { display: flex; flex-direction: column; }
 .quest-inspector-ref-empty {
   font-family: var(--body);
   font-style: italic;
@@ -1556,6 +1997,17 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   color: var(--text);
 }
 .quest-inspector-ref-btn:hover { border-color: var(--gold); }
+/* A reference whose target has been deleted elsewhere — passage/item
+   deletion doesn't fan out to quest conditions, so this can genuinely
+   happen. Blood is the right color here (unlike the selection ring
+   earlier): this is an actual problem, not just "currently selected." */
+.quest-inspector-ref-btn.broken {
+  background: rgba(124, 50, 48, 0.08);
+  border-color: var(--blood);
+  color: var(--blood);
+}
+.quest-inspector-ref-btn.broken:hover { border-color: var(--blood); }
+.quest-inspector-ref-warn { flex: 0 0 auto; }
 .quest-inspector-ref-kind {
   flex: 0 0 auto;
   font-family: var(--display);
@@ -1564,6 +2016,14 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+.quest-inspector-ref-btn.broken .quest-inspector-ref-kind { color: var(--blood); }
+.quest-inspector-ref-shared {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin: 3px 0 0 8px;
 }
 
 .quest-inspector-tags {
@@ -1631,9 +2091,14 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
 /* Marks whichever quest header or objective block is the Inspector's
    current subject, so the selection reads as a visible link between the
    card and the panel rather than something you have to take on faith. */
-.quest-objective.inspector-selected,
-.gm-choice-card.inspector-selected > .gm-choice-card-header {
-  box-shadow: 0 0 0 2px var(--blood), 0 2px 6px rgba(21, 17, 12, 0.1);
+/* Objective selection still gets a ring — the quest card's own header
+   doesn't need one, since selecting a quest also expands its accordion,
+   which is already a clear enough visual state on its own. --gold rather
+   than --blood: blood is this app's destructive/danger color (it's what
+   the Delete button right next to this uses), so using it for "currently
+   selected" read as an alarm rather than a neutral highlight. */
+.quest-objective.inspector-selected {
+  box-shadow: 0 0 0 2px var(--gold), 0 2px 6px rgba(21, 17, 12, 0.1);
 }
 
 .quest-panel { max-width: 720px; }
@@ -1875,7 +2340,11 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   background: #b69e7a;
 }
 
-.gm-contents-passage-row.active {
+/* Was .gm-contents-passage-row.active — generalized to the shared base
+   class so any row type (quest rows included, see quest-editor.js) gets
+   the same "this is what's currently open" treatment for free, instead of
+   every new row kind needing its own copy of this rule. */
+.gm-contents-row.active {
   background: rgba(124, 50, 48, 0.16);
   border-left-color: var(--blood);
   color: var(--blood);
@@ -1910,6 +2379,15 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
    CSS-drawn shapes instead of a shared glyph. */
 .gm-contents-icon.icon-normal {
   font-size: 0.82rem;
+  line-height: 1;
+}
+/* Same treatment for the quest-row flavor of this sidebar (see
+   renderQuestContentsSidebar in quest-editor.js) — a simple text glyph,
+   same sizing as icon-normal. No explicit color: like every other icon
+   here, it inherits currentColor from the row, which is what lets it
+   switch to blood automatically when that row is .active. */
+.gm-contents-icon.icon-quest {
+  font-size: 0.78rem;
   line-height: 1;
 }
 
