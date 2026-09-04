@@ -475,7 +475,7 @@ document.getElementById("gm-map-playtest-btn").addEventListener("click", async (
   }
   mode = "gm-playtest";
   activeStory = gmStory;
-  state = { currentNode: "start", inventory: [], history: [] };
+  state = freshPlayState();
   renderNode("start");
 });
 
