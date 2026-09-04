@@ -1477,5 +1477,5 @@ const NodeGraph = (() => {
     if (opts && opts.resetView) fitView();
   }
 
-  return { render, placeNewNode, fitView, currentContainer, groupPathLabel };
+  return { render, placeNewNode, fitView, currentContainer, groupPathLabel, renderContentsSidebar };
 })();
