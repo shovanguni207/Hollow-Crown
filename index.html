@@ -12,7 +12,28 @@
 
   <div class="candle-glow" aria-hidden="true"></div>
 
-  <main class="book" id="book">
+  <!-- Wraps .book so the quest journal (wide viewports only — see the
+       media query in style.css) can sit beside it as a real sibling in a
+       centered flex row, rather than trying to absolutely-position a
+       panel into .book's empty margin via guesswork. When the journal is
+       hidden (no quests, narrow viewport, or any non-story page), .book
+       is the row's only child and centers exactly as it did before this
+       existed. -->
+  <div class="reading-area" id="reading-area">
+    <!-- Persistent quest tracker, wide-viewport counterpart to the header
+         popover above — same underlying data (see updateQuestUI() in
+         player.js, which keeps both in sync), just always-visible instead
+         of tap-to-open, since there's room for that here. Only ever
+         relevant on the story page; hidden everywhere else regardless of
+         viewport width. -->
+    <aside class="quest-journal" id="quest-journal" hidden>
+      <span class="corner-flourish tl" aria-hidden="true">◆</span>
+      <span class="corner-flourish tr" aria-hidden="true">◆</span>
+      <p class="quest-journal-title">Quest Journal</p>
+      <div class="quest-tracker-list" id="quest-journal-list"></div>
+    </aside>
+
+    <main class="book" id="book">
 
     <!-- Title screen -->
     <section class="page title-page" id="title-page">
@@ -33,17 +54,49 @@
           <button class="back-btn" id="back-btn" type="button" hidden>
             <span class="back-icon" aria-hidden="true">‹</span> Go back
           </button>
-          <button class="satchel-toggle" id="satchel-toggle" type="button" aria-expanded="false" hidden>
-            <span class="satchel-icon" aria-hidden="true">◆</span>
-            <span id="satchel-count">0</span> carried
-          </button>
-        </div>
 
-        <div class="satchel-panel" id="satchel-panel" hidden>
-          <span class="corner-flourish tl" aria-hidden="true">◆</span>
-          <span class="corner-flourish tr" aria-hidden="true">◆</span>
-          <p class="satchel-panel-title">Your satchel</p>
-          <ul class="satchel-list" id="satchel-list"></ul>
+          <!-- Each toggle+panel pair gets its own positioning anchor
+               (.header-popover-anchor), so the panel opens directly under
+               its own button regardless of which other header buttons are
+               present/hidden — a shared right:0 off the whole header only
+               worked by coincidence when there was just one toggle.
+               This whole anchor is a narrow-viewport fallback for quests —
+               on a wide viewport the persistent #quest-journal beside the
+               book takes over and this is hidden entirely (see the media
+               query in style.css), so the satchel toggle is the only
+               thing occupying this header on desktop, same as before
+               quests existed. -->
+          <div class="header-popover-anchor" id="quest-toggle-anchor">
+            <button class="quest-toggle" id="quest-toggle" type="button" aria-expanded="false" hidden>
+              <span class="quest-toggle-icon" aria-hidden="true">✦</span>
+              <span id="quest-count">0</span> active
+            </button>
+            <!-- Renamed from .quest-panel to .quest-tracker-popover — that
+                 class name collided with the Grimoire Quests editor's own
+                 (unrelated, pre-existing) .quest-panel wrapper, and CSS
+                 classes are global, so this popover's absolute-positioning
+                 rules were also being applied to the editor's main content
+                 panel, breaking it. -->
+            <div class="quest-tracker-popover" id="quest-panel" hidden>
+              <span class="corner-flourish tl" aria-hidden="true">◆</span>
+              <span class="corner-flourish tr" aria-hidden="true">◆</span>
+              <p class="quest-tracker-title">Your quests</p>
+              <div class="quest-tracker-list" id="quest-panel-list"></div>
+            </div>
+          </div>
+
+          <div class="header-popover-anchor">
+            <button class="satchel-toggle" id="satchel-toggle" type="button" aria-expanded="false" hidden>
+              <span class="satchel-icon" aria-hidden="true">◆</span>
+              <span id="satchel-count">0</span> carried
+            </button>
+            <div class="satchel-panel" id="satchel-panel" hidden>
+              <span class="corner-flourish tl" aria-hidden="true">◆</span>
+              <span class="corner-flourish tr" aria-hidden="true">◆</span>
+              <p class="satchel-panel-title">Your satchel</p>
+              <ul class="satchel-list" id="satchel-list"></ul>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -153,7 +206,7 @@
              reference passages, so this stays the one shared way to find
              one. -->
         <aside class="gm-contents-sidebar" id="gm-contents-sidebar">
-          <p class="gm-contents-heading">Contents</p>
+          <p class="gm-contents-heading" id="gm-contents-heading">Contents</p>
           <div class="gm-contents-tree" id="gm-contents-tree"></div>
         </aside>
 
@@ -286,6 +339,7 @@
     </section>
 
   </main>
+  </div>
 
   <!-- Shared modal, replaces native alert/confirm/prompt -->
   <div class="modal-overlay" id="modal-overlay" hidden>
