@@ -193,11 +193,13 @@ const QuestEditor = (function () {
       empty.textContent = "No quests yet — add one with \u201c+ New quest\u201d above, then give it a few objectives to track.";
       wrap.appendChild(empty);
       renderInspector();
+      renderQuestContentsSidebar();
       return;
     }
 
     ids.forEach(id => wrap.appendChild(buildQuestCard(gmStory.quests[id])));
     renderInspector();
+    renderQuestContentsSidebar();
   }
 
   function questSummaryText(quest) {
@@ -207,7 +209,6 @@ const QuestEditor = (function () {
 
   function buildQuestCard(quest) {
     const isExpanded = expandedQuestId === quest.id;
-    const isSelected = gmInspectorSelection && gmInspectorSelection.kind === "quest" && gmInspectorSelection.id === quest.id;
 
     const card = buildAccordionCard({
       isExpanded,
@@ -284,7 +285,8 @@ const QuestEditor = (function () {
       }
     });
 
-    if (isSelected) card.classList.add("inspector-selected");
+    // (No .inspector-selected class here — see the CSS comment on that
+    // rule for why the quest card itself doesn't need a selection ring.)
     return card;
   }
 
@@ -500,7 +502,33 @@ const QuestEditor = (function () {
     }
   }
 
-  function buildReferenceList(refs) {
+  // A reference whose target no longer exists — a passage or item that got
+  // deleted without anything cleaning up what pointed at it (deleting a
+  // passage doesn't fan out to quest conditions any more than it fans out
+  // to other passages' choices — that's a known gap). refDisplayLabel
+  // already appends "(missing)" as text; this drives the louder visual
+  // treatment (warning icon, red border) so it can't be skimmed past.
+  function referenceExists(cond) {
+    if (cond.type === "reach-passage") return !!gmStory.nodes[cond.target];
+    if (cond.type === "obtain-item") return !!gmStory.items[cond.target];
+    return true;
+  }
+
+  // Cross-quest awareness: if another quest's conditions target the same
+  // passage/item, surface that here. Catches accidental duplication once a
+  // tale has more than a couple quests — "oh, Find the Sword already needs
+  // this too" is easy to lose track of without something naming it.
+  // excludeQuestId is always the quest CONTAINING whatever's being
+  // inspected (the quest itself, or an objective's parent) — reuse within
+  // the same quest doesn't count as "cross-quest."
+  function otherQuestsReferencing(type, target, excludeQuestId) {
+    return Object.values(gmStory.quests).filter(q => {
+      if (q.id === excludeQuestId) return false;
+      return (q.objectives || []).some(o => (o.conditions || []).some(c => c.type === type && c.target === target));
+    });
+  }
+
+  function buildReferenceList(refs, containingQuestId) {
     const wrap = document.createElement("div");
     wrap.className = "quest-inspector-refs";
 
@@ -513,18 +541,53 @@ const QuestEditor = (function () {
     }
 
     refs.forEach(cond => {
+      const exists = referenceExists(cond);
+      const row = document.createElement("div");
+      row.className = "quest-inspector-ref-row";
+
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "quest-inspector-ref-btn";
+      btn.className = "quest-inspector-ref-btn" + (exists ? "" : " broken");
 
       const kindTag = document.createElement("span");
       kindTag.className = "quest-inspector-ref-kind";
       kindTag.textContent = cond.type === "reach-passage" ? "Passage" : "Item";
       btn.appendChild(kindTag);
-      btn.appendChild(document.createTextNode(refDisplayLabel(cond)));
 
+      if (!exists) {
+        const warnIcon = document.createElement("span");
+        warnIcon.className = "quest-inspector-ref-warn";
+        warnIcon.textContent = "\u26a0";
+        warnIcon.setAttribute("aria-hidden", "true");
+        btn.appendChild(warnIcon);
+      }
+
+      btn.appendChild(document.createTextNode(refDisplayLabel(cond)));
       btn.addEventListener("click", () => jumpToReference(cond));
-      wrap.appendChild(btn);
+      row.appendChild(btn);
+
+      const sharedWith = otherQuestsReferencing(cond.type, cond.target, containingQuestId);
+      if (sharedWith.length > 0) {
+        const shared = document.createElement("p");
+        shared.className = "quest-inspector-ref-shared";
+        shared.appendChild(document.createTextNode("Also used by: "));
+        sharedWith.forEach((q, i) => {
+          if (i > 0) shared.appendChild(document.createTextNode(", "));
+          const link = document.createElement("button");
+          link.type = "button";
+          link.className = "quest-inspector-parent-link";
+          link.textContent = q.title || "Untitled quest";
+          link.addEventListener("click", () => {
+            expandedQuestId = q.id;
+            gmInspectorSelection = { kind: "quest", id: q.id };
+            render();
+          });
+          shared.appendChild(link);
+        });
+        row.appendChild(shared);
+      }
+
+      wrap.appendChild(row);
     });
 
     return wrap;
@@ -590,6 +653,25 @@ const QuestEditor = (function () {
     body.appendChild(el);
   }
 
+  // References section gets its own title builder: the count of broken
+  // refs needs to be visible at a glance, not just discoverable by reading
+  // every row — a quest with 5 references and 1 broken one shouldn't
+  // require scanning all 5 to notice.
+  function appendReferencesTitle(body, refs) {
+    const brokenCount = refs.filter(r => !referenceExists(r)).length;
+    const el = document.createElement("p");
+    el.className = "quest-inspector-section-title";
+    el.textContent = "References";
+    if (brokenCount > 0) {
+      const warn = document.createElement("span");
+      warn.className = "quest-inspector-section-warn";
+      warn.textContent = "\u26a0 " + brokenCount + " broken";
+      el.appendChild(document.createTextNode(" "));
+      el.appendChild(warn);
+    }
+    body.appendChild(el);
+  }
+
   function buildQuestInspector(body, quest) {
     ensureQuestMeta(quest);
 
@@ -608,8 +690,9 @@ const QuestEditor = (function () {
     meta.textContent = quest.objectives.length + " objective" + (quest.objectives.length === 1 ? "" : "s");
     body.appendChild(meta);
 
-    appendSectionTitle(body, "References");
-    body.appendChild(buildReferenceList(dedupeRefs(quest.objectives.flatMap(o => o.conditions || []))));
+    const questRefs = dedupeRefs(quest.objectives.flatMap(o => o.conditions || []));
+    appendReferencesTitle(body, questRefs);
+    body.appendChild(buildReferenceList(questRefs, quest.id));
 
     appendSectionTitle(body, "Tags");
     body.appendChild(buildTagsEditor(quest));
@@ -646,8 +729,9 @@ const QuestEditor = (function () {
     meta.appendChild(link);
     body.appendChild(meta);
 
-    appendSectionTitle(body, "References");
-    body.appendChild(buildReferenceList(dedupeRefs(obj.conditions)));
+    const objRefs = dedupeRefs(obj.conditions);
+    appendReferencesTitle(body, objRefs);
+    body.appendChild(buildReferenceList(objRefs, quest.id));
 
     appendSectionTitle(body, "Tags");
     body.appendChild(buildTagsEditor(obj));
@@ -679,6 +763,69 @@ const QuestEditor = (function () {
       if (!quest || !obj) { gmInspectorSelection = null; renderInspector(); return; }
       buildObjectiveInspector(body, quest, obj);
     }
+  }
+
+  /* ---- Contents sidebar (Quests flavor) --------------------------------
+     The Contents sidebar is shared chrome (index.html), but what it shows
+     is view-specific — see setGmView() in grimoire-manager.js, which calls
+     this while Quests is active and restores the passage tree
+     (NodeGraph.renderContentsSidebar()) everywhere else. Reuses the exact
+     same .gm-contents-row/.gm-contents-icon/.gm-contents-label classes the
+     passage tree uses, so the sidebar's visual language doesn't shift
+     depending on which tab put something there — only the icon and what
+     clicking a row does changes. */
+  function renderQuestContentsSidebar() {
+    const tree = document.getElementById("gm-contents-tree");
+    const heading = document.getElementById("gm-contents-heading");
+    if (!tree) return;
+    if (heading) heading.textContent = "Quests";
+    tree.innerHTML = "";
+
+    const ids = Object.keys(gmStory.quests || {});
+    if (ids.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "hint";
+      empty.style.textAlign = "left";
+      empty.textContent = "No quests yet.";
+      tree.appendChild(empty);
+      return;
+    }
+
+    const list = document.createElement("ul");
+    list.className = "gm-contents-list";
+
+    ids.forEach(id => {
+      const quest = gmStory.quests[id];
+      const isActive = expandedQuestId === id;
+
+      const item = document.createElement("li");
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "gm-contents-row" + (isActive ? " active" : "");
+      row.title = quest.title || id;
+
+      const icon = document.createElement("span");
+      icon.className = "gm-contents-icon icon-quest";
+      icon.textContent = "\u2726";
+      icon.setAttribute("aria-hidden", "true");
+      row.appendChild(icon);
+
+      const label = document.createElement("span");
+      label.className = "gm-contents-label";
+      label.textContent = quest.title || "Untitled quest";
+      row.appendChild(label);
+
+      row.addEventListener("click", () => {
+        expandedQuestId = id;
+        gmInspectorSelection = { kind: "quest", id };
+        render();
+      });
+
+      item.appendChild(row);
+      list.appendChild(item);
+    });
+
+    tree.appendChild(list);
   }
 
   document.getElementById("gm-quest-new-btn").addEventListener("click", createQuest);
