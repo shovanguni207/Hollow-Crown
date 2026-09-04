@@ -3,7 +3,8 @@
    with a Grimoire: a manager for many saved tales, each
    editable passage-by-passage and playtestable in place.
 
-   STORY SHAPE: { items: {id: {label, description}}, nodes: {id: node} }
+   STORY SHAPE: { items: {id: {label, description}},
+   quests: {id: {title, description, objectives}}, nodes: {id: node} }
    Item definitions live once in `items`; choices only ever
    reference an item by id in `requires`/`grants`. This keeps a
    single source of truth for an item's display name no matter
@@ -16,6 +17,7 @@ const DEFAULT_STORY = {
     key: { label: "Iron Key", description: "Still warm. It hums faintly, as though it remembers a lock." },
     blade: { label: "Captain's Blade", description: "Notched but honest — a soldier's blade, not a looter's." }
   },
+  quests: {},
   nodes: {
     start: {
       chapter: "I — The Gatehouse",
