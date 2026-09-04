@@ -33,6 +33,16 @@ function hideAllPages() {
   gmPage.classList.remove("open");
   gmDrawerBackdrop.hidden = true;
   gmDrawerBackdrop.classList.remove("open");
+  // The quest journal (player.js) lives outside .book entirely — a
+  // sibling in .reading-area, not one of the pages this function
+  // otherwise resets — specifically so it can sit beside .book in the
+  // layout instead of inside it. That means it's the one piece of
+  // story-page-only chrome this function has to reset by hand, or
+  // leaving the story would strand it visible next to the title/manager
+  // screen. updateQuestUI() (player.js) is what shows it again once
+  // there's actually a story with quests to display.
+  const questJournalEl = document.getElementById("quest-journal");
+  if (questJournalEl) questJournalEl.hidden = true;
 }
 
 /* =========================================================
@@ -303,4 +313,4 @@ function buildAccordionCard({ isExpanded, onToggle, buildSummary, removeLabel, o
   }
 
   return card;
-}s
+}
