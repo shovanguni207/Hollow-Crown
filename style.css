@@ -1,0 +1,3046 @@
+/* ===== Tokens ===== */
+:root {
+  --ink: #15110c;
+  --ink-soft: #211a12;
+  --parchment: #ece0c4;
+  --parchment-edge: #bd9a5c;
+  --gold: #b6893f;
+  --gold-bright: #dba94f;
+  --blood: #7c3230;
+  --text: #1c130a;
+  --text-muted: #52431f;
+  --surface-raised: #f6efdc;   /* cards, sit slightly above the page */
+  --surface-sunken: #e0d0a0;   /* inputs, sit slightly below the page */
+  --surface-warm-light: #faf1d9; /* a lighter, warmer cream — used where a field needs to read as "light" without going pale/neutral (see the quest objective block) */
+  --forest: #3f4a2e;           /* one deliberate exception to the gold/blood accent scheme — reserved for a tale's own "Play" action specifically, so it doesn't visually compete with the many other gold buttons on this screen */
+  --forest-bright: #55643f;
+
+  --display: "Cinzel", serif;
+  --body: "EB Garamond", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% 20%, var(--ink-soft) 0%, var(--ink) 65%);
+  background-attachment: fixed;
+  color: var(--parchment);
+  font-family: var(--body);
+  min-height: 100vh;
+  min-height: 100dvh; /* accounts for mobile browser chrome (address bar); ignored by browsers that don't support dvh, falling back to the line above */
+  padding: 32px 16px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* subtle ambient candle flicker behind the page */
+.candle-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 15%, rgba(219, 169, 79, 0.10), transparent 55%);
+  animation: flicker 6s ease-in-out infinite;
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.85; }
+  50% { opacity: 1; }
+  78% { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .candle-glow { animation: none; }
+}
+
+/* ===== Book / page shell ===== */
+.book {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.page {
+  background: var(--parchment);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 56px 48px;
+  box-shadow:
+    0 0 0 1px var(--parchment-edge),
+    0 30px 60px -20px rgba(0,0,0,0.7),
+    0 0 80px -10px rgba(219, 169, 79, 0.08);
+  position: relative;
+}
+
+/* torn/aged edge feel via inset border */
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(124, 50, 48, 0.18);
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .page { padding: 36px 24px; }
+}
+
+/* ===== Typography ===== */
+.eyebrow {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--blood);
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: 2.6rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 20px;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 440px;
+  margin: 0 auto 36px;
+}
+
+.hint {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 20px;
+  letter-spacing: 0.03em;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: block;
+  margin: 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 34px;
+  background: var(--blood);
+  border: 1px solid var(--gold);
+  color: var(--parchment);
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 6px 18px -6px rgba(124, 50, 48, 0.55);
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.btn::before, .btn::after {
+  content: "◆";
+  color: var(--gold-bright);
+  font-size: 0.6rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.btn::before { left: 12px; }
+.btn::after { right: 12px; }
+
+.btn:hover, .btn:focus-visible {
+  background: #93413c;
+  border-color: var(--gold-bright);
+  box-shadow: 0 8px 24px -6px rgba(124, 50, 48, 0.75);
+}
+.btn:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 3px; }
+
+/* ===== Story screen ===== */
+.story-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.25);
+  padding-bottom: 14px;
+  margin-bottom: 28px;
+}
+
+.chapter-label {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blood);
+}
+
+.satchel-toggle {
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.satchel-toggle:not([hidden]) { display: inline-flex; }
+.satchel-toggle:hover, .satchel-toggle:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+
+.satchel-icon { color: var(--blood); font-size: 0.68rem; }
+
+/* Quest toggle — same pill as satchel-toggle, gold instead of blood for
+   the icon (blood's reserved for danger/destructive elsewhere in this
+   app; a quest tracker isn't that). */
+.quest-toggle {
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.quest-toggle:not([hidden]) { display: inline-flex; }
+.quest-toggle:hover, .quest-toggle:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+.quest-toggle-icon { color: var(--gold); font-size: 0.7rem; }
+
+/* Popover chrome — same box/caret treatment as .satchel-panel — no
+   explicit `display` here on purpose, exactly like .satchel-panel:
+   block-level children stack fine without flex, which sidesteps the
+   [hidden]-specificity trap entirely rather than needing a :not([hidden])
+   guard to dodge it. Narrow-viewport only now — see the media query
+   below and the one on #quest-toggle-anchor. Named .quest-tracker-popover,
+   not .quest-panel: that name collided with the Grimoire Quests editor's
+   own unrelated .quest-panel wrapper (CSS classes are global), which
+   broke that screen entirely once this rule's absolute-positioning
+   applied to it too. */
+.quest-tracker-popover {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: 0;
+  z-index: 30;
+  width: 300px;
+  max-width: calc(100vw - 88px);
+  background: linear-gradient(165deg, var(--surface-raised) 0%, var(--parchment) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  box-shadow:
+    0 18px 40px -12px rgba(21, 17, 12, 0.55),
+    0 0 0 4px rgba(182, 137, 63, 0.12),
+    inset 0 0 0 1px rgba(124, 50, 48, 0.14);
+  padding: 16px 18px 18px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.quest-tracker-popover::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 26px;
+  width: 13px;
+  height: 13px;
+  background: var(--surface-raised);
+  border-left: 1px solid var(--gold);
+  border-top: 1px solid var(--gold);
+  transform: rotate(45deg);
+}
+@media (max-width: 560px) {
+  .quest-tracker-popover {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100vw - 64px);
+    max-width: 320px;
+  }
+  .quest-tracker-popover::before { display: none; }
+}
+
+.quest-tracker-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 12px;
+}
+.quest-tracker-title::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold), transparent);
+}
+
+/* ---- Persistent journal (wide viewports) — sits beside .book in
+   .reading-area (see index.html). Reader can always see it, no tap
+   needed; the popover above is the narrow-viewport fallback instead of
+   this. Both are driven by the same data (updateQuestUI() in player.js
+   populates #quest-panel-list and #quest-journal-list together), so
+   there's exactly one source of truth even though there are two
+   presentations. ---- */
+/* Below the breakpoint, .reading-area is a plain block and .book centers
+   itself the old way (margin:0 auto) — no journal in the layout at all
+   at this width, see the media query further down. */
+.reading-area { width: 100%; }
+.book { margin: 0 auto; }
+
+.quest-journal {
+  display: none; /* narrow-viewport default; see the media query below */
+  width: 240px;
+  position: relative;
+  background: linear-gradient(165deg, var(--surface-raised) 0%, var(--parchment) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  box-shadow:
+    0 20px 45px -18px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(124, 50, 48, 0.12);
+  padding: 22px 18px;
+  max-height: calc(100vh - 64px);
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+}
+/* Grid, not flex, and specifically a THIRD, empty, mirrored column —
+   this is the actual fix, not just a different way of centering. A flex
+   row centering "the group" (journal + book together) means the book's
+   own position always depends on whether the journal exists — hide/show
+   the journal and the book visibly shifts, which is exactly the bug this
+   replaced. A 3-column grid (gutter | book | gutter) has no such
+   dependency: both outer columns are the same `1fr` track, so they're
+   ALWAYS equal width — including when the left one is empty and the
+   right one has content, or vice versa. The book (middle column) is
+   therefore centered by construction, not by any centering logic that
+   has to account for what else is on the page. The empty right column
+   only exists to be that mirror; nothing is ever placed in it. */
+@media (min-width: 1200px) {
+  .reading-area {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 620px) minmax(260px, 1fr);
+    align-items: start;
+  }
+  .book { grid-column: 2; margin: 0; }
+  .quest-journal:not([hidden]) {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+    display: block;
+  }
+  /* The header popover becomes redundant once the journal has room to
+     exist — hidden outright here regardless of its own [hidden] state,
+     so the satchel toggle goes back to being the header's only occupant,
+     same as before quests existed. */
+  #quest-toggle-anchor { display: none; }
+}
+
+.quest-journal-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.22);
+}
+
+/* ---- Content shared between both presentations ---- */
+.quest-tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quest-tracker-quest-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.94rem;
+  color: var(--text);
+  margin: 0 0 3px;
+}
+.quest-tracker-complete-badge {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--forest);
+}
+.quest-tracker-quest-desc {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.quest-tracker-objectives {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quest-tracker-objective {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+/* Manual objectives get a real button (clickable checkbox); auto-tracked
+   ones get the same visual glyph but as an inert span — see the JS
+   comment in buildQuestListInto (player.js) for why only one of the two
+   is a <button>. */
+.quest-tracker-check {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--forest);
+  padding: 0;
+  cursor: default;
+}
+button.quest-tracker-check { cursor: pointer; }
+button.quest-tracker-check:hover, button.quest-tracker-check:focus-visible {
+  border-color: var(--gold);
+}
+.quest-tracker-objective.done .quest-tracker-check {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--surface-raised);
+}
+.quest-tracker-objective.done .quest-tracker-check::before { content: "\2713"; }
+
+.quest-tracker-objective-text-wrap { flex: 1 1 auto; min-width: 0; }
+.quest-tracker-objective-text {
+  font-family: var(--body);
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.4;
+}
+.quest-tracker-objective.done .quest-tracker-objective-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(82, 67, 31, 0.4);
+}
+.quest-tracker-objective-hint {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+}
+
+.satchel-panel {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: 0;
+  z-index: 30;
+  width: 260px;
+  max-width: calc(100vw - 88px);
+  background: linear-gradient(165deg, var(--surface-raised) 0%, var(--parchment) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  box-shadow:
+    0 18px 40px -12px rgba(21, 17, 12, 0.55),
+    0 0 0 4px rgba(182, 137, 63, 0.12),
+    inset 0 0 0 1px rgba(124, 50, 48, 0.14);
+  padding: 16px 18px 18px;
+}
+
+/* caret pointing back up at the toggle button that opened it */
+.satchel-panel::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 26px;
+  width: 13px;
+  height: 13px;
+  background: var(--surface-raised);
+  border-left: 1px solid var(--gold);
+  border-top: 1px solid var(--gold);
+  transform: rotate(45deg);
+}
+
+/* Below this width the header can wrap the toggle onto its own row, so a
+   right-anchored popup can no longer reliably line up under it. Center the
+   popup under the whole card instead of chasing the toggle's position. */
+@media (max-width: 560px) {
+  .satchel-panel {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100vw - 64px);
+    max-width: 320px;
+  }
+  .satchel-panel::before { display: none; }
+}
+
+.satchel-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin: 0 0 12px;
+}
+
+.satchel-panel-title::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold), transparent);
+}
+
+.satchel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.satchel-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.98rem;
+  color: var(--text);
+  padding: 6px 0;
+}
+
+.satchel-list li:not(:last-child) {
+  border-bottom: 1px solid rgba(124, 50, 48, 0.14);
+}
+
+.satchel-list li::before {
+  content: "◆";
+  color: var(--gold);
+  font-size: 0.6rem;
+}
+
+.passage-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.75;
+  margin: 0 0 36px;
+  color: var(--text);
+}
+
+/* illuminated drop cap — the signature element */
+.passage-text::first-letter {
+  font-family: var(--display);
+  font-size: 3.6rem;
+  font-weight: 600;
+  float: left;
+  line-height: 0.78;
+  padding: 4px 10px 0 0;
+  color: var(--blood);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.choice-btn {
+  text-align: left;
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 1.02rem;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-left: 3px solid var(--gold);
+  padding: 10px 8px 10px 18px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, padding-left 0.2s ease;
+}
+
+.choice-btn:hover, .choice-btn:focus-visible {
+  border-left-color: var(--blood);
+  background: rgba(124, 50, 48, 0.06);
+  padding-left: 24px;
+}
+.choice-btn:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+
+.choice-btn .locked-note {
+  display: block;
+  font-family: var(--display);
+  font-weight: 500;
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* ===== Ending screen ===== */
+.ending-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.9rem;
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.ending-text {
+  font-size: 1.12rem;
+  font-weight: 500;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--text);
+  margin: 0 0 36px;
+}
+
+#restart-btn { margin-top: 4px; }
+
+/* ===== Secondary / ghost button (title screen) ===== */
+.btn-ghost {
+  display: none; /* [hidden] would otherwise be overridden by the unconditional rule below - see .modal-overlay for the same pattern */
+  margin: 16px auto 0;
+  font-family: var(--body);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.94rem;
+  background: none;
+  border: none;
+  color: var(--blood);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.btn-ghost:not([hidden]) { display: block; }
+.btn-ghost:hover, .btn-ghost:focus-visible { color: var(--gold); }
+
+/* ===== Leave-tale link on story screen ===== */
+.leave-link {
+  background: none;
+  border: none;
+  font-family: var(--body);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  margin-right: 12px;
+}
+.leave-link:hover, .leave-link:focus-visible { color: var(--blood); }
+
+.story-header { flex-wrap: wrap; gap: 8px; }
+
+.story-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Positioning context for a toggle+panel pair — see the HTML comment on
+   .header-popover-anchor for why this replaced a shared right:0 off the
+   whole header (it only worked by coincidence with a single toggle). */
+.header-popover-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Same pill shape/scale as .satchel-toggle, so both header-right actions
+   read as one visual family, but outlined rather than filled — "Go back"
+   is a reversal, not the default forward motion of the satchel's status
+   pill, so it sits a step quieter next to it. */
+.back-btn {
+  align-items: center;
+  gap: 5px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.back-btn:not([hidden]) { display: inline-flex; }
+.back-btn:hover, .back-btn:focus-visible {
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.18);
+}
+.back-icon { color: var(--blood); font-size: 0.9rem; line-height: 1; }
+
+/* ===== Grimoire (Game Master mode) ===== */
+.gm-header { margin-bottom: 28px; }
+
+.gm-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.7rem;
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.gm-intro {
+  font-size: 0.98rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.gm-intro code {
+  font-family: var(--body);
+  font-style: italic;
+  background: rgba(182, 137, 63, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.gm-subhead {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin: 0 0 12px;
+}
+
+/* ===== Form controls ===== */
+.gm-label {
+  display: block;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.gm-label input[type="text"],
+.gm-label textarea {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 9px 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.gm-label input[type="text"]:focus,
+.gm-label textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.gm-label textarea { resize: vertical; }
+
+.hint-inline {
+  font-family: var(--body);
+  font-weight: 400;
+  font-size: 0.82rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-muted);
+}
+
+.gm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.94rem;
+  color: var(--text);
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.gm-ending-fields { margin-bottom: 6px; }
+
+.gm-choices-block {
+  border-top: 1px solid rgba(124, 50, 48, 0.25);
+  padding-top: 16px;
+  margin-top: 6px;
+}
+
+.gm-choices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gm-choice-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(21, 17, 12, 0.16);
+}
+
+.gm-choice-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.gm-choice-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.gm-choice-chevron {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--gold);
+  font-size: 0.72rem;
+  transition: transform 0.15s ease;
+}
+.gm-choice-card.expanded .gm-choice-chevron { transform: rotate(90deg); }
+
+.gm-choice-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.94rem;
+  color: var(--text);
+  /* Scrolls (wheel/trackpad/touch) when content overflows, but with no
+     visible scrollbar — a thin themed one still rendered with a full
+     track + arrow buttons on some browser/OS combinations, which ate up
+     its own row in a UI this compact. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.gm-choice-summary::-webkit-scrollbar { display: none; }
+
+.gm-choice-summary .n {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin-right: 6px;
+}
+
+.gm-choice-summary .placeholder { font-style: italic; color: var(--text-muted); }
+.gm-choice-summary .arrow { color: var(--text-muted); font-style: italic; }
+
+.gm-choice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 14px 16px;
+  border-top: 1px solid rgba(124, 50, 48, 0.22);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+.gm-choice-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.gm-choice-field input {
+  min-width: 0;
+  margin-top: 5px;
+  font-family: var(--body);
+  font-size: 0.92rem;
+  text-transform: none;
+  letter-spacing: normal;
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 8px 10px;
+  color: var(--text);
+}
+
+.gm-choice-field input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.gm-choice-field select {
+  min-width: 0;
+  margin-top: 5px;
+  font-family: var(--body);
+  font-size: 0.92rem;
+  text-transform: none;
+  letter-spacing: normal;
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  padding: 8px 10px;
+  color: var(--text);
+  cursor: pointer;
+}
+.gm-choice-field select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+/* The <select> itself picks up the theme fine, but its open dropdown list
+   is built from <option> elements, which don't inherit most styling from
+   their parent — left unstyled, the closed control looked themed while
+   the open list fell back to the browser's plain black-on-white default,
+   which is what was actually happening here. Most desktop browsers do
+   honor background-color/color on <option> (mobile pickers generally
+   don't — that's native OS chrome outside CSS's reach either way), so
+   this is the most consistent look achievable without replacing <select>
+   with a fully custom-built dropdown widget. */
+.gm-choice-field select option {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-family: var(--body);
+}
+
+.gm-remove-choice {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--blood);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.gm-remove-choice:hover { text-decoration: underline; }
+
+.gm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn-small {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--text);
+  padding: 9px 17px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-small:hover, .btn-small:focus-visible {
+  background: rgba(182, 137, 63, 0.18);
+  border-color: var(--gold-bright);
+}
+
+.btn-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.btn-gold:hover, .btn-gold:focus-visible {
+  background: var(--gold-bright);
+  border-color: var(--gold-bright);
+}
+
+/* destructive-tier: quieter than primary, but unmistakably "be careful" */
+.btn-danger {
+  border-color: var(--blood);
+  color: var(--blood);
+}
+.btn-danger:hover, .btn-danger:focus-visible {
+  background: rgba(124, 50, 48, 0.12);
+  border-color: var(--blood);
+}
+
+.file-btn { display: inline-block; }
+
+.gm-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid rgba(124, 50, 48, 0.2);
+  margin-top: 26px;
+  padding-top: 20px;
+}
+
+.gm-footer-actions .btn { margin: 0; }
+
+.tale-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.btn-tiny {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.btn-tiny:hover, .btn-tiny:focus-visible { color: var(--blood); text-decoration: underline; }
+
+/* ===== Manager page: the tale library ===== */
+/* A carved-wood-and-gold-trim outer frame around this page specifically —
+   ring effect built from stacked box-shadows (no image assets in this
+   project) rather than a plain border, so it composites with .page's own
+   existing shadow list instead of replacing it. */
+.manager-page {
+  max-width: 720px;
+  box-shadow:
+    0 0 0 1px var(--parchment-edge),
+    0 0 0 4px var(--gold),
+    0 0 0 10px var(--ink-soft),
+    0 0 0 11px var(--gold),
+    0 30px 60px -20px rgba(0, 0, 0, 0.7),
+    0 0 80px -10px rgba(219, 169, 79, 0.08);
+}
+
+.manager-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.tale-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.tale-list-empty {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.tale-card {
+  position: relative; /* anchors the corner-flourish */
+  min-width: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(21, 17, 12, 0.16);
+  padding: 20px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tale-card-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--text);
+  margin: 0 0 2px;
+  word-break: break-word;
+}
+
+.tale-card-meta {
+  font-size: 0.84rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+/* Play — full width, deliberately not gold (see the --forest token
+   comment in the root block) so it reads as this card's one unmistakable
+   "go" action. */
+.tale-card-play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+  background: var(--forest);
+  border: 1px solid var(--forest);
+  border-radius: 4px;
+  padding: 11px 14px;
+  color: var(--surface-raised);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.tale-card-play-btn:hover, .tale-card-play-btn:focus-visible {
+  background: var(--forest-bright);
+  border-color: var(--forest-bright);
+}
+
+.tale-card-btn-icon { font-size: 0.75em; }
+
+.tale-card-secondary-row {
+  position: relative; /* anchors the overflow menu */
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tale-card-open-btn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tale-card-open-btn:hover, .tale-card-open-btn:focus-visible {
+  border-color: var(--gold);
+  background: rgba(182, 137, 63, 0.12);
+}
+
+.tale-card-overflow-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  background: transparent;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.tale-card-overflow-btn:hover, .tale-card-overflow-btn:focus-visible,
+.tale-card-overflow-btn[aria-expanded="true"] {
+  border-color: var(--gold);
+  background: rgba(182, 137, 63, 0.12);
+  color: var(--text);
+}
+
+/* Opens upward, right-aligned above the "\u22ef" button — the row it's
+   anchored to sits at the bottom of the card, so opening downward would
+   frequently spill past the card (or the grid row) below it.
+   :not([hidden]) — the recurring bug in this file: an unconditional
+   `display` here beats the browser's default [hidden]{display:none}
+   regardless of specificity, since author rules always outrank the UA
+   stylesheet. Without this every card's menu renders open at once,
+   which is exactly what shipped last time this got missed. */
+.tale-card-overflow-menu:not([hidden]) {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 5px;
+  box-shadow: 0 8px 20px rgba(21, 17, 12, 0.28);
+  padding: 5px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+}
+
+.tale-card-overflow-item {
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.tale-card-overflow-item:hover, .tale-card-overflow-item:focus-visible {
+  background: rgba(182, 137, 63, 0.16);
+}
+.tale-card-overflow-item.danger { color: var(--blood); }
+.tale-card-overflow-item.danger:hover, .tale-card-overflow-item.danger:focus-visible {
+  background: rgba(124, 50, 48, 0.12);
+}
+
+.tale-card-actions .btn-tiny {
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  padding: 6px 10px;
+  color: var(--text);
+}
+.tale-card-actions .btn-tiny:hover {
+  border-color: var(--gold);
+  background: rgba(182, 137, 63, 0.16);
+  text-decoration: none;
+  color: var(--text);
+}
+.tale-card-actions .btn-tiny.danger {
+  color: var(--blood);
+  border-color: var(--blood);
+}
+.tale-card-actions .btn-tiny.danger:hover {
+  background: rgba(124, 50, 48, 0.12);
+  border-color: var(--blood);
+  color: var(--blood);
+}
+
+/* ===== Passage drawer (slides over the map to edit one passage) =====
+   Same open/close mechanics as the toast further down: hidden is removed
+   first so there's something laid out to animate, then .open is added a
+   frame later so the transform genuinely transitions instead of jumping
+   straight to its end state (see openGmDrawer/closeGmDrawer in ui-core.js). */
+.gm-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(21, 17, 12, 0.62);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+.gm-drawer-backdrop:not([hidden]) { display: block; }
+.gm-drawer-backdrop.open { opacity: 1; }
+
+.gm-drawer {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  height: 100dvh; /* see body's min-height comment above — same mobile-chrome issue */
+  width: min(460px, 100vw);
+  background: var(--parchment);
+  color: var(--text);
+  border-left: 1px solid var(--gold);
+  box-shadow: -20px 0 50px -14px rgba(0, 0, 0, 0.6);
+  z-index: 95;
+  transform: translateX(100%);
+  transition: transform 0.26s ease;
+}
+.gm-drawer:not([hidden]) { display: flex; }
+.gm-drawer.open { transform: translateX(0); }
+
+@media (max-width: 640px) {
+  .gm-drawer { width: 100vw; border-left: none; }
+}
+
+.gm-drawer-header {
+  flex: 0 0 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.25);
+}
+
+.gm-drawer-header-text { min-width: 0; }
+
+.gm-drawer-eyebrow {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--blood);
+  margin: 0 0 4px;
+}
+
+.gm-drawer-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--text);
+  margin: 0;
+  word-break: break-word;
+}
+.gm-drawer-title.placeholder { font-style: italic; color: var(--text-muted); font-weight: 500; }
+
+.gm-drawer-close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.gm-drawer-close:hover, .gm-drawer-close:focus-visible {
+  color: var(--blood);
+  border-color: var(--gold-bright);
+  background: rgba(182, 137, 63, 0.16);
+}
+
+.gm-drawer-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden; /* belt-and-suspenders alongside .gm-drawer's min-width:0 fix — any content that still doesn't wrap clips here instead of finding a different path to force the drawer wider */
+  padding: 22px 24px 32px;
+}
+
+/* The passage-text textarea is the primary writing surface in a narrower
+   single-column drawer now (it used to share a wider two-column page with
+   more horizontal room) — rows="5" alone reads as cramped here, so give
+   it real height regardless of the row count. */
+#gm-text { min-height: 170px; }
+
+/* ===== Shared modal (replaces alert/confirm/prompt) ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(21, 17, 12, 0.72);
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-overlay:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: var(--parchment);
+  color: var(--text);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 6px;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+  padding: 26px 24px 20px;
+  max-width: 380px;
+  width: 100%;
+}
+
+.modal-message {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+
+.modal-input {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 9px 11px;
+  margin-bottom: 20px;
+}
+.modal-input:not([hidden]) { display: block; }
+.modal-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ===== Toast (quiet, self-dismissing confirmation) ===== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--ink-soft);
+  color: var(--parchment);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 0.84rem;
+  letter-spacing: 0.03em;
+  padding: 12px 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 200;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ===== Item Ledger (Grimoire): auto-generated registry of every item in the tale ===== */
+/* Wrapped in its own soft, recessed panel — rather than just another
+   divided section of the same form — so it reads as a distinct kind of
+   content: tale-wide reference data, not more fields for the passage
+   currently being edited above it. */
+.gm-ledger {
+  margin-top: 28px;
+  padding: 18px 18px 20px;
+  background: rgba(21, 17, 12, 0.035);
+  border: 1px solid rgba(124, 50, 48, 0.16);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 4px rgba(21, 17, 12, 0.05);
+}
+
+.ledger-intro {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0 0 14px;
+  max-width: 560px;
+}
+
+.item-defs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* id field + its "Change id" action, sitting on one row instead of
+   stacking (the disabled input alone gave no visual cue this was an
+   editable field at all). Shared between the item ledger's id field and
+   the passage id field below — same pattern, same code. */
+.id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+.id-row input {
+  margin-top: 0;
+  flex: 1;
+  min-width: 0; /* same gap .gm-choice-summary/.gm-drawer-header-text already guard against — an <input>'s own intrinsic min-content width can otherwise still nudge a flex row wider than intended */
+}
+.id-row .btn-tiny {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 7px 10px;
+}
+.id-row .btn-tiny:hover, .id-row .btn-tiny:focus-visible {
+  background: rgba(182, 137, 63, 0.18);
+  border-color: var(--gold-bright);
+  text-decoration: none;
+}
+
+.ledger-empty {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.ledger-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  padding: 9px 14px;
+}
+
+.ledger-row .item-name {
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.94rem;
+  color: var(--text);
+  margin-right: 4px;
+}
+
+.item-mark {
+  color: var(--gold);
+  font-size: 0.62rem;
+  margin-right: 6px;
+}
+
+.tag-pill {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  color: var(--text-muted);
+}
+
+.tag-pill.warning {
+  border-color: var(--blood);
+  color: var(--blood);
+}
+
+/* extra spacing needed only when the pill sits inline within running text
+   (the flex-based .ledger-row already spaces its children via gap) */
+.gm-choice-summary .tag-pill { margin-left: 8px; }
+
+/* ===== Item-picker autocomplete (Requires/Grants fields in a choice) ===== */
+.item-autocomplete {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  box-shadow: 0 10px 24px -8px rgba(21, 17, 12, 0.4);
+}
+
+.item-autocomplete-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(124, 50, 48, 0.14);
+  text-align: left;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.item-autocomplete-row:last-child { border-bottom: none; }
+.item-autocomplete-row:hover,
+.item-autocomplete-row:focus-visible {
+  background: rgba(182, 137, 63, 0.16);
+}
+
+.item-autocomplete-id {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* ===== Satchel panel corner flourishes (Pathfinder-style carved-frame touch) ===== */
+.corner-flourish {
+  position: absolute;
+  color: var(--gold);
+  font-size: 0.55rem;
+  opacity: 0.85;
+}
+.corner-flourish.tl { top: 8px; left: 10px; }
+.corner-flourish.tr { top: 8px; right: 10px; }
+
+/* The satchel panel's flourish sits against a gradient with a full carved
+   border on all sides, which gives it enough contrast to read clearly at
+   0.55rem. The drawer header is a flatter, single-tone surface, so the
+   same size all but disappeared there — sized and placed to actually
+   register against the flat parchment. */
+.gm-drawer-header .corner-flourish {
+  font-size: 0.85rem;
+  top: 10px;
+  left: 12px;
+  opacity: 0.9;
+}
+/* Same reasoning as the drawer header above: a flat parchment surface,
+   not the satchel panel's gradient, so it needs the larger size to
+   actually register. */
+.tale-card .corner-flourish {
+  font-size: 0.85rem;
+  top: 10px;
+  left: 12px;
+  opacity: 0.7;
+}
+/* ===== Story Map (visual node graph) ===== */
+.book:has(.gm-map-page:not([hidden])) { max-width: none; }
+
+/* Same escape hatch, extended to .reading-area now that .book lives
+   inside it: a grid item's rendered size is bounded by its grid TRACK,
+   not just its own CSS, so .book's max-width:none above stopped having
+   any effect once its column was capped at minmax(0, 620px) — that cap
+   exists specifically to keep prose at a comfortable reading width, which
+   is exactly the constraint the full-viewport editor must escape, not
+   inherit. Reverting to a plain block here (regardless of the
+   min-width:1200px grid breakpoint below — :has() specificity beats a
+   plain class selector regardless of which media query either lives in)
+   makes .book's own max-width:none meaningful again. */
+.reading-area:has(.gm-map-page:not([hidden])) {
+  display: block;
+}
+.reading-area:has(.gm-map-page:not([hidden])) > .book {
+  margin: 0;
+}
+
+/* No page-level scrolling while the map is open — panning/zooming happens
+   entirely inside the graph canvas via CSS transform instead. Padding
+   dropped to 0 here too: body's own 32px/16px padding (see the base body
+   rule up top) was exactly the gap between .book and the real viewport
+   edge — removing it is what actually lets .book (already width:100%)
+   reach edge-to-edge, not just uncapping its max-width. */
+body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
+
+/* This page swaps the usual eyebrow/title/intro header for one compact
+   nav row, and stretches to fill the viewport so the canvas — not chrome —
+   gets the space. Same padding-override approach as elsewhere: same
+   specificity as the generic .page rule, source order lets it win. */
+.gm-map-page:not([hidden]) {
+  height: 100vh;
+  height: 100dvh; /* see body's min-height comment above — accounts for mobile browser chrome (address bar) */
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px;
+}
+
+.gm-map-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(182, 137, 63, 0.3);
+}
+.gm-map-topbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.gm-map-topbar .eyebrow { margin: 0; }
+.gm-map-topbar .tale-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+.gm-map-topbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- View tabs: Graph / Quests / World Map --------------------------
+   Sits between the tale-identity topbar and each tool's own toolbar row.
+   Deliberately plainer than the carved-frame node cards below it — this is
+   navigation chrome, not tale content, so it reads closer to the topbar's
+   quiet hairline-rule register than to anything gold-bordered on the
+   canvas. Active tab uses the same blood underline the rest of the app
+   reserves for "this is the current thing," rather than a filled pill,
+   so three tabs sitting this close to the gold "+ New passage" button
+   don't visually compete with it. */
+.gm-view-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  padding-top: 8px;
+}
+.gm-view-tab {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  padding: 6px 12px 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.gm-view-tab:hover, .gm-view-tab:focus-visible { color: var(--text); }
+.gm-view-tab.active {
+  color: var(--blood);
+  border-bottom-color: var(--blood);
+}
+
+.gm-map-toolbar:not([hidden]) {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.gm-map-search-input {
+  font-family: var(--body);
+  font-size: 0.85rem;
+  background: var(--surface-sunken);
+  color: var(--text);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 5px 9px;
+  width: 180px;
+}
+.gm-map-search-input:focus { outline: 2px solid var(--gold-bright); outline-offset: 1px; }
+
+/* The one place in the app that steps outside the parchment surface — a
+   dark "architect's table" window let into the page, echoing the ink half
+   of "ink and candlelight" rather than the candlelight half. Node cards
+   inside stay on --surface-raised/--gold so they read as the same
+   illuminated-manuscript language as the rest of the app. flex:1 is what
+   actually makes the canvas claim the leftover space; overflow:hidden
+   because content now pans via transform rather than native scrolling. */
+/* The map's three-column working area: Contents sidebar / canvas / passage
+   drawer (docked at wide widths — see the .gm-drawer media query further
+   down). flex:1 + min-height:0 is what lets THIS row claim the leftover
+   vertical space below the topbar/toolbar and still shrink correctly
+   inside .gm-map-page's own column flex, same reasoning .graph-viewport
+   already relied on before this row existed. */
+.gm-map-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 14px;
+}
+
+.graph-viewport {
+  flex: 1 1 auto;
+  min-height: 0; /* required for a flex child to actually shrink instead of overflowing */
+  min-width: 0;  /* same reasoning, now that this is also a row-flex child of .gm-map-body */
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: grab;
+  /* Node cards and the connector dot already opt out of native touch
+     gestures (see .graph-node/.graph-connector below) — the canvas
+     background they sit on needs the same, or a touch-drag here is
+     ambiguous to the browser (pan the graph? scroll/zoom the page?) and
+     it can hijack or stall the gesture deciding. This is what makes
+     one-finger pan and two-finger pinch (see attachStaticListenersOnce)
+     fully owned by this file's own transform math instead of fighting
+     the browser's native page zoom. */
+  touch-action: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
+    var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--gold),
+    inset 0 0 50px rgba(0, 0, 0, 0.55);
+}
+.graph-viewport.panning { cursor: grabbing; }
+
+/* ---- Quests / World Map canvases — same "architect's table" dark
+   surface and flex sizing as .graph-viewport, so switching tabs swaps
+   content without any layout jolt. No pan/zoom cursor or touch-action
+   override yet since there's no canvas interaction to protect until
+   quest-editor.js/map-editor.js build one. ---- */
+.map-editor-viewport:not([hidden]) {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(0deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgba(219, 169, 79, 0.05) 0 1px, transparent 1px 28px),
+    var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--gold),
+    inset 0 0 50px rgba(0, 0, 0, 0.55);
+}
+
+/* ---- Quests canvas: a parchment card list, not a spatial canvas — see
+   the comment on #quest-viewport in index.html. Scrolls internally rather
+   than centering placeholder text, since real content lives here now. ---- */
+.quest-viewport:not([hidden]) {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  border-radius: 6px;
+  background: var(--parchment);
+  box-shadow: inset 0 0 0 1px var(--gold);
+  padding: 20px 24px;
+}
+
+/* Mirrors .gm-contents-sidebar on the opposite edge — same fixed width,
+   same raised surface, border on the inward-facing side instead. Quests
+   is the only view with a third column for now (see setGmView), so this
+   isn't part of the generic per-view viewport toggling; it's shown/hidden
+   directly alongside the Quests view specifically. */
+/* Mirrors .gm-contents-sidebar on the opposite edge — same fixed width,
+   same raised surface, border on the inward-facing side instead. Quests
+   is the only view with a third column for now (see setGmView), so this
+   isn't part of the generic per-view viewport toggling; it's shown/hidden
+   directly alongside the Quests view specifically.
+   :not([hidden]) — same reason every other view-toggled panel in this file
+   needs it: an unconditional `display` here beats the browser's default
+   [hidden]{display:none} regardless of specificity, since author rules
+   always outrank the UA stylesheet. Without this guard the panel renders
+   in every view, not just Quests, no matter what setGmView() sets .hidden
+   to. */
+.quest-inspector:not([hidden]) {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-raised);
+  border-left: 1px solid rgba(182, 137, 63, 0.35);
+  padding: 14px 14px 18px;
+  overflow-y: auto;
+}
+
+.quest-inspector-empty {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.quest-inspector-kind {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 2px;
+}
+.quest-inspector-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+.quest-inspector-meta {
+  font-family: var(--body);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+.quest-inspector-meta a,
+.quest-inspector-parent-link {
+  color: var(--blood);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(124, 50, 48, 0.4);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+.quest-inspector-parent-link:hover { text-decoration-color: var(--blood); }
+
+.quest-inspector-section-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 16px 0 6px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(124, 50, 48, 0.18);
+}
+.quest-inspector-section-title:first-of-type { border-top: none; padding-top: 0; margin-top: 4px; }
+.quest-inspector-section-warn {
+  color: var(--blood);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.quest-inspector-refs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quest-inspector-ref-row { display: flex; flex-direction: column; }
+.quest-inspector-ref-empty {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.quest-inspector-ref-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface-warm-light);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.quest-inspector-ref-btn:hover { border-color: var(--gold); }
+/* A reference whose target has been deleted elsewhere — passage/item
+   deletion doesn't fan out to quest conditions, so this can genuinely
+   happen. Blood is the right color here (unlike the selection ring
+   earlier): this is an actual problem, not just "currently selected." */
+.quest-inspector-ref-btn.broken {
+  background: rgba(124, 50, 48, 0.08);
+  border-color: var(--blood);
+  color: var(--blood);
+}
+.quest-inspector-ref-btn.broken:hover { border-color: var(--blood); }
+.quest-inspector-ref-warn { flex: 0 0 auto; }
+.quest-inspector-ref-kind {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.quest-inspector-ref-btn.broken .quest-inspector-ref-kind { color: var(--blood); }
+.quest-inspector-ref-shared {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin: 3px 0 0 8px;
+}
+
+.quest-inspector-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.quest-inspector-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-warm-light);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 12px;
+  padding: 2px 4px 2px 9px;
+  font-family: var(--body);
+  font-size: 0.76rem;
+  color: var(--text);
+}
+.quest-inspector-tag button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px 5px;
+}
+.quest-inspector-tag button:hover { color: var(--blood); }
+.quest-inspector-tag-input {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 0.82rem;
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+.quest-inspector-tag-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.quest-inspector-notes {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  font-family: var(--body);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  padding: 8px 9px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+}
+.quest-inspector-notes:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+/* Marks whichever quest header or objective block is the Inspector's
+   current subject, so the selection reads as a visible link between the
+   card and the panel rather than something you have to take on faith. */
+/* Objective selection still gets a ring — the quest card's own header
+   doesn't need one, since selecting a quest also expands its accordion,
+   which is already a clear enough visual state on its own. --gold rather
+   than --blood: blood is this app's destructive/danger color (it's what
+   the Delete button right next to this uses), so using it for "currently
+   selected" read as an alarm rather than a neutral highlight. */
+.quest-objective.inspector-selected {
+  box-shadow: 0 0 0 2px var(--gold), 0 2px 6px rgba(21, 17, 12, 0.1);
+}
+
+.quest-panel { max-width: 720px; }
+
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Quest card reuses the same accordion look as a choice card (see
+   .gm-choice-card) — one visual language for "a collapsible thing with a
+   summary line and an editable body," rather than a second one invented
+   just for quests. */
+.quest-card-title-field input { font-size: 1.02rem; }
+
+.quest-objectives-block {
+  border-top: 1px solid rgba(124, 50, 48, 0.22);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+/* Nested one level inside the (already-raised) quest card, so this needs
+   its own raised/sunken pair rather than reusing --surface-sunken again —
+   using the same sunken tone as the condition inputs it contains was
+   making the whole block read as one flat fill with no separation between
+   "the objective's container" and "the fields inside it." Uses --parchment
+   rather than --surface-raised: --surface-raised trends pale/neutral next
+   to the fields it holds, which is the "cold" look this was meant to
+   fix — --parchment carries more of the app's own warmth. */
+.quest-objective {
+  background: var(--parchment);
+  border: 1px solid var(--gold);
+  border-radius: 5px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(21, 17, 12, 0.1);
+}
+
+/* Fields inside an objective (its own text, and every condition's type/
+   target) use --surface-warm-light instead of the app-wide --surface-sunken
+   — lighter, so they read clearly against the objective's --parchment
+   container, but still warm rather than a stark neutral input color. */
+.quest-objective .gm-choice-field input,
+.quest-objective .gm-choice-field select,
+.quest-objective-row input[type="text"] {
+  background: var(--surface-warm-light);
+}
+
+.quest-objective-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quest-objective-num-btn {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  padding: 4px;
+  margin: -4px 0;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 0.94rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+}
+.quest-objective-num-btn:hover { color: var(--blood); background: rgba(124, 50, 48, 0.08); }
+/* Not wrapped in a .gm-choice-field label (no field caption needed here),
+   so it doesn't inherit `.gm-choice-field input`'s themed look for free —
+   this repeats that same input treatment directly so it doesn't fall back
+   to the browser's stark default white input box. */
+.quest-objective-row input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--body);
+  font-size: 0.94rem;
+  color: var(--text);
+  border: 1px solid var(--parchment-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15);
+  padding: 8px 10px;
+}
+.quest-objective-row input[type="text"]:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 1px 3px rgba(21, 17, 12, 0.15), 0 0 0 2px rgba(182, 137, 63, 0.25);
+}
+
+.quest-condition-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.quest-condition-type-field { flex: 0 0 170px; }
+.quest-condition-target-field { flex: 1 1 220px; min-width: 0; position: relative; }
+.quest-condition-row .gm-remove-choice { flex: 0 0 auto; }
+
+.quest-condition-or {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 8px 0 2px;
+}
+
+.gm-tool-placeholder {
+  max-width: 380px;
+  text-align: center;
+  padding: 24px;
+}
+.gm-tool-placeholder .eyebrow { color: var(--gold); }
+.gm-tool-placeholder-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.3rem;
+  color: var(--parchment);
+  margin: 4px 0 10px;
+}
+.gm-tool-placeholder-text {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(236, 224, 196, 0.65);
+}
+
+/* ---- Contents sidebar: a persistent nested tree of every passage/group
+   in the tale, independent of whatever the canvas currently has scoped
+   into view (see buildContentsLevel in graph.js). No card framing of its
+   own (no border/radius/shadow) — it's a flush panel of the same
+   --surface-raised chrome the drawer uses, with a hairline edge to
+   separate it from the dark canvas rather than reading as a floating box
+   sitting on top of it. ---- */
+.gm-contents-sidebar {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-raised);
+  border-right: 1px solid rgba(182, 137, 63, 0.35);
+  padding: 14px 10px;
+  overflow-y: auto;
+}
+.gm-map-body.sidebar-hidden .gm-contents-sidebar { display: none; }
+
+.gm-contents-heading {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0 0 10px 6px;
+}
+
+.gm-contents-tree { flex: 1 1 auto; min-height: 0; }
+.gm-contents-list {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+/* Every level below the top gets its own vertical trunk line running down
+   through the branch, with each box's tick mark branching off it. Kept in
+   a single column deliberately (not fanning siblings out sideways) — this
+   sidebar is narrow, so depth reads through vertical stacking + connector
+   lines rather than horizontal room. `.gm-contents-list .gm-contents-list`
+   (two ancestors deep) excludes the top-level list itself, since top-level
+   boxes sit flush with no incoming line — only their children ever branch
+   off one.
+   Color is a direct sample from the reference mockup's tree lines (a
+   muted warm tan, softer/grayer than --gold) rather than the app's own
+   gold token at low alpha — the two happened to look noticeably different
+   side by side, so this is pinned to the literal reference value. */
+.gm-contents-list .gm-contents-list {
+  padding-left: 16px;
+  margin-left: 10px;
+  border-left: 1px solid #b69e7a;
+}
+.gm-contents-list .gm-contents-list > li {
+  position: relative;
+}
+.gm-contents-list .gm-contents-list > li::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: -16px;
+  width: 12px;
+  height: 1px;
+  background: #b69e7a;
+}
+
+/* Flat tree rows — no per-row border/card/shadow. A permanent 3px
+   transparent left rail (rather than adding a border only when active)
+   keeps every row's text at the same x position whether or not it's the
+   one currently open, so nothing shifts sideways when selection moves. */
+.gm-contents-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  text-align: left;
+  font-family: var(--body);
+  font-size: 0.87rem;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  padding: 5px 8px 5px 6px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  position: relative; /* anchors the ::after elbow stub on an expanded group row, below */
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.gm-contents-row:hover, .gm-contents-row:focus-visible {
+  background: rgba(182, 137, 63, 0.2);
+}
+.gm-contents-group-row { font-weight: 600; }
+
+/* An expanded group's own vertical stub, connecting its box down into its
+   child list's trunk line — the piece that actually makes this read as
+   one continuous elbow (box → down → across → child box) instead of a
+   box sitting above an unrelated line. Only drawn while expanded — a
+   collapsed group has no visible child list for it to connect to. */
+.gm-contents-group-row:has(.gm-contents-chevron.open)::after {
+  content: "";
+  position: absolute;
+  left: 19px;
+  bottom: -4px;
+  width: 1px;
+  height: 4px;
+  background: #b69e7a;
+}
+
+/* Was .gm-contents-passage-row.active — generalized to the shared base
+   class so any row type (quest rows included, see quest-editor.js) gets
+   the same "this is what's currently open" treatment for free, instead of
+   every new row kind needing its own copy of this rule. */
+.gm-contents-row.active {
+  background: rgba(124, 50, 48, 0.16);
+  border-left-color: var(--blood);
+  color: var(--blood);
+  font-weight: 600;
+}
+.gm-contents-passage-row.is-ending { color: var(--text-muted); }
+.gm-contents-passage-row.is-ending.active { color: var(--blood); }
+
+.gm-contents-chevron {
+  display: inline-block;
+  font-size: 0.65rem;
+  color: var(--gold);
+  transition: transform 0.12s ease;
+}
+.gm-contents-chevron.open { transform: rotate(90deg); }
+
+/* Row type glyphs, swapped to match the reference mockup instead of the
+   map cards' dingbat set (nodeGlyph) — this sidebar reads better with its
+   own quieter, line-art icon language. All three use `currentColor`
+   rather than a fixed tone, so they automatically pick up whatever color
+   the row itself is currently showing (default ink, blood when active or
+   an ending) instead of needing separate per-state icon color rules. */
+.gm-contents-icon {
+  flex: 0 0 auto;
+  color: currentColor;
+  opacity: 0.75;
+}
+.gm-contents-row.active .gm-contents-icon,
+.gm-contents-row:hover .gm-contents-icon { opacity: 1; }
+
+/* Bullseye for a plain passage. Ending and start below get their own
+   CSS-drawn shapes instead of a shared glyph. */
+.gm-contents-icon.icon-normal {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+/* Same treatment for the quest-row flavor of this sidebar (see
+   renderQuestContentsSidebar in quest-editor.js) — a simple text glyph,
+   same sizing as icon-normal. No explicit color: like every other icon
+   here, it inherits currentColor from the row, which is what lets it
+   switch to blood automatically when that row is .active. */
+.gm-contents-icon.icon-quest {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+/* Crown for the start passage, skull for an ending — same inline-SVG
+   shapes as the map card's .graph-node-icon (see buildEmblemIcon in
+   graph.js), just sized down to this sidebar's smaller rows. Both use
+   currentColor, so they follow whatever color the row itself is
+   currently showing, same as every other sidebar icon. */
+.gm-contents-icon.icon-start {
+  display: inline-flex;
+  width: 15px;
+  height: 12px;
+}
+.gm-contents-icon.icon-ending {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+}
+.gm-contents-icon.icon-start svg, .gm-contents-icon.icon-ending svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Folder tab, built from two bordered boxes rather than a pictographic
+   folder character — emoji-range "folder" glyphs render in full color in
+   most browsers regardless of `color`/`currentColor`, which would break
+   the monochrome ink-and-candlelight look these rows otherwise keep. */
+.gm-contents-icon.icon-group {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 9px;
+  margin-top: 2px;
+  border: 1.3px solid currentColor;
+  border-radius: 0 2px 2px 2px;
+}
+.gm-contents-icon.icon-group::before {
+  content: "";
+  position: absolute;
+  top: -3.5px;
+  left: -1.3px;
+  width: 6px;
+  height: 3.5px;
+  border: 1.3px solid currentColor;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+}
+
+.gm-contents-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graph-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.gm-map-statusbar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 2px;
+  border-top: 1px solid rgba(182, 137, 63, 0.3);
+}
+.gm-map-statusbar-left { flex: 1 1 auto; min-width: 0; }
+.gm-map-statusbar-counts {
+  flex: 0 0 auto;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.gm-map-statusbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+}
+.gm-map-statusbar button {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid rgba(182, 137, 63, 0.4);
+  border-radius: 4px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.gm-map-statusbar button:hover, .gm-map-statusbar button:focus-visible {
+  color: var(--text);
+  border-color: var(--gold-bright);
+  background: rgba(219, 169, 79, 0.1);
+}
+
+/* The breadcrumb now lives inside the status bar's left slot (moved here
+   from above the canvas — same element, same graph.js logic, just a
+   different home in the layout) so it reads together with the passage/
+   group counts as one status line, the way the reference mockup groups
+   them. */
+.gm-map-statusbar-left .gm-map-breadcrumb:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0;
+}
+.gm-map-breadcrumb .gm-crumb-sep {
+  color: var(--gold);
+  font-size: 0.8rem;
+}
+.gm-map-breadcrumb .gm-crumb-current {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ---- Passage drawer docking at wide viewports -------------------------
+   Below 1000px this is untouched: a fixed overlay with a dimming backdrop
+   (see .gm-drawer above). At/above it, the drawer becomes a real third
+   column in .gm-map-body's flex row instead — no backdrop (nothing behind
+   it to dim), no slide transform (nothing to slide in from), a full
+   border instead of a flush left edge since it's a standalone panel now.
+   Deliberately doesn't touch `display` here — that stays fully owned by
+   the existing `.gm-drawer:not([hidden])` rule above, so the drawer still
+   correctly disappears when `hidden` regardless of viewport width (see
+   the [hidden]-specificity note in this file's history — the bug that
+   rule already guards against is exactly the mistake to avoid repeating
+   here). isWideDrawerLayout() in ui-core.js must be kept in sync with
+   this same 1000px breakpoint by hand. */
+@media (min-width: 1000px) {
+  .gm-drawer-backdrop { display: none !important; }
+  .gm-drawer {
+    position: static;
+    flex: 0 0 380px;
+    height: auto;
+    width: auto;
+    min-width: 0; /* the actual missing half of .graph-viewport's fix above — without this, a flex item's default min-width:auto lets unwrapped content (e.g. a long item name in the ledger) grow the drawer past its 380px basis instead of wrapping/scrolling within it */
+    min-height: 0;
+    transform: none;
+    box-shadow: none;
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+  }
+  .gm-drawer-body { border-radius: 0 0 6px 6px; }
+}
+
+/* The Contents sidebar has no overlay/collapsed-drawer variant of its own
+   yet (unlike the passage drawer) — below this width it's simply not
+   available, rather than half-building a second overlay pattern in the
+   same pass. The toggle button goes with it since there's nothing left
+   for it to toggle. */
+@media (max-width: 860px) {
+  .gm-contents-sidebar,
+  .gm-map-topbar-actions #gm-map-sidebar-toggle {
+    display: none !important;
+  }
+}
+
+/* Below phone width, the map editor itself (drag, connectors, the docked
+   drawer) has no usable layout at all, so rather than let someone land on
+   a half-broken canvas, this covers the whole page. Hidden by default;
+   this media query is the ONLY thing that ever shows it, so there's no JS
+   state that could get out of sync with what's actually renderable. */
+.gm-mobile-block { display: none; }
+@media (max-width: 640px) {
+  .gm-mobile-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: var(--ink);
+    text-align: center;
+    padding: 40px 30px;
+  }
+  .gm-mobile-block-title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--gold-bright);
+  }
+  .gm-mobile-block-text {
+    font-family: var(--body);
+    font-style: italic;
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 320px;
+    color: var(--parchment);
+  }
+  .gm-mobile-block-back { margin-top: 6px; }
+}
+
+.graph-wires, .graph-live-layer {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.graph-wire {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+.graph-wire.dangling {
+  stroke: var(--blood);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.graph-wire.temp {
+  stroke: var(--gold-bright);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.graph-dot { fill: var(--gold); stroke: var(--gold-bright); stroke-width: 1.5; }
+.graph-dot.dangling { fill: var(--blood); stroke: var(--gold-bright); stroke-width: 1.5; }
+
+.graph-dangling-label {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 11px;
+  fill: var(--blood);
+}
+
+.graph-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font-family: var(--body);
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--gold);
+  border-radius: 15px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 227, 0.4),
+    0 3px 10px rgba(0, 0, 0, 0.4);
+  padding: 14px 32px 14px 20px;
+  min-height: 76px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.graph-node:hover, .graph-node:focus-visible {
+  border-color: var(--gold-bright);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 227, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.5);
+}
+.graph-node.dragging {
+  cursor: grabbing;
+  z-index: 5;
+  transform: rotate(-1.5deg) scale(1.03);
+  border-color: var(--gold-bright);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 227, 0.4),
+    0 16px 32px rgba(0, 0, 0, 0.6);
+}
+/* While a link is being dragged out from this card's connector, dim it
+   slightly so the eye follows the wire being drawn, not the source card. */
+.graph-node.connecting {
+  filter: grayscale(0.5) brightness(0.82);
+}
+
+.graph-node.is-ending { border-color: var(--blood); }
+.graph-node.is-orphan { border-style: dashed; opacity: 0.75; }
+
+/* Corner ribbon marks the start passage only — endings are identified by
+   their own glyph + border color instead, so the two states don't share
+   one corner treatment. The thin diagonal light streak simulates a
+   folded-paper highlight rather than reading as a single flat triangle. */
+.graph-node-ribbon {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 28px;
+  height: 28px;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: linear-gradient(135deg,
+    var(--gold-bright) 0%, var(--gold-bright) 52%,
+    rgba(255, 248, 227, 0.55) 56%,
+    var(--gold-bright) 60%, var(--gold-bright) 100%);
+}
+
+/* Icon + title row, left-aligned — the subtitle/meta rows below it are
+   centered instead (see .graph-node-sub/.graph-node-meta), an
+   intentional asymmetry: the header reads as a fixed label, the rows
+   under it read as centered secondary detail. */
+.graph-node-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.graph-node-icon {
+  flex: 0 0 auto;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--gold);
+}
+.graph-node-icon.icon-normal, .graph-node-icon.icon-group {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  color: var(--text);
+}
+.graph-node-icon.icon-normal svg, .graph-node-icon.icon-group svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Crown (start) and skull (ending) — plain inline-SVG icons now (see
+   buildEmblemIcon in graph.js), same sizing pattern as icon-normal/
+   icon-group above: the wrapper just sizes the box, the SVG inside fills
+   it. No filters/shadows on either — flat and crisp reads better than
+   the old clip-path version did at this size. */
+.graph-node-icon.icon-start {
+  display: inline-flex;
+  width: 19px;
+  height: 15px;
+  color: var(--gold-bright);
+}
+.graph-node-icon.icon-start svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.graph-node-icon.icon-ending {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--blood);
+}
+.graph-node-icon.icon-ending svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.graph-node-title, .graph-node-sub {
+  display: block;
+  min-width: 0; /* lets a flex-item span actually truncate instead of forcing the card wider */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.graph-node-title { flex: 1 1 auto; }
+
+/* Meta-stats row: counts at a glance without opening the passage editor,
+   using small-caps text labels (matching the rest of the app's typographic
+   button language) with the same ◆ flourish already used on the satchel
+   panel, rather than a new icon set. Centered, matching the subtitle
+   above it — see the .graph-node-head comment for why the header stays
+   left-aligned while these two rows don't. */
+.graph-node-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.graph-node-meta .meta-stat strong {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.96rem;
+  color: var(--text);
+}
+.graph-node-meta .meta-stat i {
+  font-style: italic;
+  color: var(--text-muted);
+}
+.graph-node-meta .meta-sep {
+  color: var(--gold);
+  font-size: 0.68rem;
+}
+
+/* The trailing indicator pinned to a card's right edge and vertically
+   centered against the whole card — see buildCardMenu in graph.js for
+   why it lives here instead of inside the meta row. Decorative only for
+   now: the kebab has no menu wired up behind it yet. */
+.graph-node-menu {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  pointer-events: none; /* decorative only for now — explicit rather than relying on attachDrag's exclusion list not needing it */
+}
+.graph-node-menu.is-chevron {
+  color: var(--gold);
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+.graph-node.graph-node-group:hover .graph-node-menu.is-chevron,
+.graph-node.graph-node-group:focus-visible .graph-node-menu.is-chevron {
+  color: var(--gold-bright);
+}
+.graph-node-menu.is-kebab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5px;
+}
+.graph-node-menu.is-kebab span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.75;
+}
+
+/* The stacked "second card" behind a group's shell — a full duplicate of
+   the card's own box, same border/radius, offset down-right and sent
+   behind (z-index) so only a sliver peeks out at the bottom-right corner.
+   Reads as "there's more behind this one" the way the old stacked-shadow
+   treatment did, layered on top of the new shell rather than reviving
+   that old CSS wholesale. z-index:0 on the group card itself gives this
+   pseudo-element its own local stacking context, so its z-index:-1 stays
+   scoped to just this card instead of potentially slipping behind
+   unrelated sibling cards or the wires layer on the canvas. */
+.graph-node.graph-node-group {
+  z-index: 0;
+}
+.graph-node.graph-node-group::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: inherit;
+  transform: translate(7px, 7px);
+}
+.graph-node.graph-node-group.is-orphan::before { border-style: dashed; }
+
+/* Rename/delete affordances on a group card — small enough to stay out of
+   the way of the title/meta bar, but always visible (not hover-only, to
+   match how the rest of the app exposes card actions, e.g. tale-card-actions). */
+.graph-node-group-actions {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.graph-node-group-action {
+  font-family: var(--body);
+  font-size: 0.78rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+.graph-node-group-action:hover, .graph-node-group-action:focus-visible {
+  color: var(--text);
+  border-color: var(--gold-bright);
+}
+.graph-node-group-action.danger:hover, .graph-node-group-action.danger:focus-visible {
+  color: var(--blood);
+  border-color: var(--blood);
+}
+
+/* While dragging a card, whichever group card it's currently hovering
+   over (a valid nest target) gets a bright, unmistakably "drop here"
+   outline. */
+.graph-node.drop-target {
+  outline: 3px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.graph-wire.external {
+  stroke: var(--gold-bright);
+  stroke-width: 2;
+  stroke-dasharray: 2 4;
+}
+.graph-dangling-label.external { fill: var(--gold-bright); }
+
+.graph-node-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.18rem;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.graph-node-sub {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.98rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+.graph-node.is-ending .graph-node-sub { color: var(--blood); }
+
+/* Draggable connector handles — one per side (N/E/S/W), so a link can
+   start from whichever face of the card actually points toward its
+   target instead of always dragging out from a fixed right-hand port.
+   Grabbing one (instead of the card body) spins a new link out to
+   another passage, or a new passage entirely. Radial-gradient highlight +
+   layered ring gives it some depth ("ports should feel tactile") without
+   needing an icon asset.
+
+   Hidden at rest, and — unlike the first version of this — revealed one
+   at a time, only by hovering that specific edge's own hover strip (see
+   .graph-node-hover-zone below), not by hovering the card generally.
+   Four dots lighting up together read as "any of these," which is the
+   wrong signal once every side is a real, independent connector.
+
+   IMPORTANT: this element is pointer-events:none, always. It used to
+   accept pointer events once revealed, but that meant revealing it (by
+   hovering the zone beneath) immediately let it occlude that same zone —
+   the dot popping on top broke the zone's :hover the instant it appeared,
+   which hid the dot again, which un-occluded the zone, which re-hovered
+   it, which revealed the dot again... every frame, forever. That's a
+   self-cancelling loop by construction, not something a size tweak fixes.
+   The zone is the one real interactive target (see attachConnectorDrag in
+   graph.js); this is purely a decorative readout of "is that zone hovered
+   right now," which is safe because it can never compete with the thing
+   revealing it for the pointer's attention. */
+.graph-connector {
+  position: absolute;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, var(--gold-bright), var(--gold) 72%);
+  border: 2px solid var(--surface-raised);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    inset 0 0 3px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+/* The real interactive element: invisible, always pointer-events:auto, and
+   sized to fully contain the dot's own 18px footprint with a couple of
+   pixels to spare on every side — the dot must never poke out past this
+   zone's edges, or the sliver it pokes out into becomes a dead spot where
+   the visible dot doesn't actually respond to the pointer (see the note
+   above for why that's not just a cosmetic gap but the root of the old
+   flicker). Also carries the drag cursor and the tooltip now, since it's
+   the element actually being hovered/clicked, not the dot. */
+.graph-node-hover-zone {
+  position: absolute;
+  z-index: 3; /* above the dot: nothing should ever be able to occlude the actual hit target */
+  cursor: crosshair;
+  touch-action: none;
+}
+.graph-node-hover-zone.side-top, .graph-node-hover-zone.side-bottom {
+  left: 15%;
+  width: 70%;
+  height: 22px;
+}
+.graph-node-hover-zone.side-top { top: -11px; }
+.graph-node-hover-zone.side-bottom { bottom: -11px; }
+.graph-node-hover-zone.side-left, .graph-node-hover-zone.side-right {
+  top: 15%;
+  height: 70%;
+  width: 22px;
+}
+.graph-node-hover-zone.side-left { left: -11px; }
+.graph-node-hover-zone.side-right { right: -11px; }
+
+.graph-node-hover-zone.side-top:hover ~ .graph-connector.side-top,
+.graph-node-hover-zone.side-right:hover ~ .graph-connector.side-right,
+.graph-node-hover-zone.side-bottom:hover ~ .graph-connector.side-bottom,
+.graph-node-hover-zone.side-left:hover ~ .graph-connector.side-left,
+.graph-node-hover-zone.side-top:focus-visible ~ .graph-connector.side-top,
+.graph-node-hover-zone.side-right:focus-visible ~ .graph-connector.side-right,
+.graph-node-hover-zone.side-bottom:focus-visible ~ .graph-connector.side-bottom,
+.graph-node-hover-zone.side-left:focus-visible ~ .graph-connector.side-left,
+.graph-connector.active-drag {
+  opacity: 1;
+}
+/* Was .graph-connector:hover — now dead, since the dot never receives
+   pointer events. Retargeted at the zone, same "you're about to grab
+   this one" feedback, driven by the thing that's actually hovered. */
+.graph-node-hover-zone.side-top:hover ~ .graph-connector.side-top,
+.graph-node-hover-zone.side-right:hover ~ .graph-connector.side-right,
+.graph-node-hover-zone.side-bottom:hover ~ .graph-connector.side-bottom,
+.graph-node-hover-zone.side-left:hover ~ .graph-connector.side-left,
+.graph-node-hover-zone.side-top:focus-visible ~ .graph-connector.side-top,
+.graph-node-hover-zone.side-right:focus-visible ~ .graph-connector.side-right,
+.graph-node-hover-zone.side-bottom:focus-visible ~ .graph-connector.side-bottom,
+.graph-node-hover-zone.side-left:focus-visible ~ .graph-connector.side-left,
+.graph-connector.active-drag {
+  background: radial-gradient(circle at 35% 32%, var(--blood), var(--blood) 72%);
+}
+
+.graph-connector.side-right { right: -9px; top: 50%; transform: translateY(-50%); }
+.graph-connector.side-left { left: -9px; top: 50%; transform: translateY(-50%); }
+.graph-connector.side-top { top: -9px; left: 50%; transform: translateX(-50%); }
+.graph-connector.side-bottom { bottom: -9px; left: 50%; transform: translateX(-50%); }
+
+.graph-node.is-dimmed { opacity: 0.2; }
+
+@media (max-width: 640px) {
+  .gm-map-page:not([hidden]) { padding: 10px 14px; min-height: 380px; }
+  .gm-view-tabs { gap: 0; }
+  .gm-map-toolbar { gap: 8px; }
+  .gm-map-search-input { width: 120px; }
+}
+
+/* A landscape phone is often wider than 640px (so the block above never
+   kicks in) but still much shorter than a portrait one — the actual
+   constraint there is height, not width. The graph-viewport already has
+   min-height:0 so it's free to shrink as a flex child, but .gm-map-page's
+   own 480px floor (desktop) / 380px floor (the block above) was forcing
+   the page itself taller than the real visible area regardless, pushing
+   the statusbar below an unreachable, unscrollable fold (see
+   body:has(.gm-map-page...) further up — page scroll is deliberately off
+   while the map is open, since panning/zooming happens inside the canvas
+   instead). Dropping the floor entirely here lets the whole layout
+   compress to fit; the small min-height on .graph-viewport just keeps
+   the canvas from disappearing outright on a truly tiny window. */
+@media (max-height: 520px) {
+  .gm-map-page:not([hidden]) {
+    min-height: 0;
+    padding: 8px 16px;
+  }
+  .gm-map-topbar { padding-bottom: 4px; }
+  .gm-map-toolbar { padding: 6px 0; gap: 8px; }
+  .gm-map-statusbar { padding: 6px 0 2px; }
+  .graph-viewport { min-height: 120px; }
+}

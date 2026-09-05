@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hollow Crown, an interactive tale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="candle-glow" aria-hidden="true"></div>
+
+  <!-- Wraps .book so the quest journal (wide viewports only — see the
+       media query in style.css) can sit beside it as a real sibling in a
+       centered flex row, rather than trying to absolutely-position a
+       panel into .book's empty margin via guesswork. When the journal is
+       hidden (no quests, narrow viewport, or any non-story page), .book
+       is the row's only child and centers exactly as it did before this
+       existed. -->
+  <div class="reading-area" id="reading-area">
+    <!-- Persistent quest tracker, wide-viewport counterpart to the header
+         popover above — same underlying data (see updateQuestUI() in
+         player.js, which keeps both in sync), just always-visible instead
+         of tap-to-open, since there's room for that here. Only ever
+         relevant on the story page; hidden everywhere else regardless of
+         viewport width. -->
+    <aside class="quest-journal" id="quest-journal" hidden>
+      <span class="corner-flourish tl" aria-hidden="true">◆</span>
+      <span class="corner-flourish tr" aria-hidden="true">◆</span>
+      <p class="quest-journal-title">Quest Journal</p>
+      <div class="quest-tracker-list" id="quest-journal-list"></div>
+    </aside>
+
+    <main class="book" id="book">
+
+    <!-- Title screen -->
+    <section class="page title-page" id="title-page">
+      <p class="eyebrow">a tale told in choices</p>
+      <h1 class="title">The Hollow Crown</h1>
+      <p class="subtitle">The old king is dead. The gate to the undercroft is open.<br>What you take from it and what it takes from you is yours to decide.</p>
+      <button class="btn btn-primary" id="start-btn">Begin the Tale</button>
+      <button class="btn btn-ghost" id="gm-enter-btn">Open the Grimoire. write your own tale</button>
+      <p class="hint">A short branching story · ~5 minute read</p>
+    </section>
+
+    <!-- Story screen (plays either the built-in tale or a Grimoire draft) -->
+    <section class="page story-page" id="story-page" hidden>
+      <header class="story-header">
+        <button class="leave-link" id="leave-story-btn" type="button">‹ Leave the tale</button>
+        <span class="chapter-label" id="chapter-label">Chapter</span>
+        <div class="story-header-right">
+          <button class="back-btn" id="back-btn" type="button" hidden>
+            <span class="back-icon" aria-hidden="true">‹</span> Go back
+          </button>
+
+          <!-- Each toggle+panel pair gets its own positioning anchor
+               (.header-popover-anchor), so the panel opens directly under
+               its own button regardless of which other header buttons are
+               present/hidden — a shared right:0 off the whole header only
+               worked by coincidence when there was just one toggle.
+               This whole anchor is a narrow-viewport fallback for quests —
+               on a wide viewport the persistent #quest-journal beside the
+               book takes over and this is hidden entirely (see the media
+               query in style.css), so the satchel toggle is the only
+               thing occupying this header on desktop, same as before
+               quests existed. -->
+          <div class="header-popover-anchor" id="quest-toggle-anchor">
+            <button class="quest-toggle" id="quest-toggle" type="button" aria-expanded="false" hidden>
+              <span class="quest-toggle-icon" aria-hidden="true">✦</span>
+              <span id="quest-count">0</span> active
+            </button>
+            <!-- Renamed from .quest-panel to .quest-tracker-popover — that
+                 class name collided with the Grimoire Quests editor's own
+                 (unrelated, pre-existing) .quest-panel wrapper, and CSS
+                 classes are global, so this popover's absolute-positioning
+                 rules were also being applied to the editor's main content
+                 panel, breaking it. -->
+            <div class="quest-tracker-popover" id="quest-panel" hidden>
+              <span class="corner-flourish tl" aria-hidden="true">◆</span>
+              <span class="corner-flourish tr" aria-hidden="true">◆</span>
+              <p class="quest-tracker-title">Your quests</p>
+              <div class="quest-tracker-list" id="quest-panel-list"></div>
+            </div>
+          </div>
+
+          <div class="header-popover-anchor">
+            <button class="satchel-toggle" id="satchel-toggle" type="button" aria-expanded="false" hidden>
+              <span class="satchel-icon" aria-hidden="true">◆</span>
+              <span id="satchel-count">0</span> carried
+            </button>
+            <div class="satchel-panel" id="satchel-panel" hidden>
+              <span class="corner-flourish tl" aria-hidden="true">◆</span>
+              <span class="corner-flourish tr" aria-hidden="true">◆</span>
+              <p class="satchel-panel-title">Your satchel</p>
+              <ul class="satchel-list" id="satchel-list"></ul>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <article class="passage" id="passage">
+        <p class="passage-text" id="passage-text"></p>
+      </article>
+
+      <div class="choices" id="choices"></div>
+    </section>
+
+    <!-- Ending screen -->
+    <section class="page ending-page" id="ending-page" hidden>
+      <p class="eyebrow" id="ending-eyebrow">the tale ends here</p>
+      <h2 class="ending-title" id="ending-title"></h2>
+      <p class="ending-text" id="ending-text"></p>
+      <button class="btn btn-primary" id="restart-btn">Tell It Again</button>
+    </section>
+
+    <!-- Grimoire manager: the library of all saved tales -->
+    <section class="page manager-page" id="manager-page" hidden>
+      <header class="gm-header">
+        <p class="eyebrow">the grimoire</p>
+        <h2 class="gm-title">Your Tales</h2>
+        <p class="gm-intro">Every tale you write is kept here, on this device. Open one to keep working, or begin something new.</p>
+      </header>
+
+      <div class="manager-actions">
+        <button class="btn-small btn-gold" id="mgr-new-tale-btn" type="button">+ New tale</button>
+        <label class="btn-small file-btn">
+          Import a tale
+          <input type="file" id="mgr-import-input" accept="application/json" hidden>
+        </label>
+      </div>
+
+      <div class="tale-list" id="tale-list"></div>
+      <p class="hint tale-list-empty" id="tale-list-empty" hidden>No tales yet ,start one with "+ New tale" above.</p>
+
+      <div class="gm-footer-actions">
+        <button class="btn-small" id="mgr-back-btn" type="button">‹ Back to title</button>
+      </div>
+    </section>
+
+    <!-- Grimoire map: the visual node graph, entry point once a tale is open -->
+    <section class="page gm-map-page" id="gm-map-page" hidden>
+      <!-- Full-screen block for phone-width viewports — the map editor
+           (drag, connectors, the docked drawer) has no mobile layout of
+           its own, so rather than let someone land on a half-broken canvas,
+           this covers it entirely below the breakpoint. CSS-only visibility
+           (see the max-width media query in style.css) so it's in effect
+           the instant the page paints, with no JS state to get out of sync. -->
+      <div class="gm-mobile-block" aria-hidden="true">
+        <p class="gm-mobile-block-title">A Larger Stage Is Needed</p>
+        <p class="gm-mobile-block-text">The Grimoire's map is built for a wider screen — a tablet, laptop, or desktop. Please come back on a larger device to keep editing this tale.</p>
+        <button class="btn-small btn-gold gm-mobile-block-back" id="gm-mobile-block-back" type="button">‹ All tales</button>
+      </div>
+
+      <div class="gm-map-topbar">
+        <div class="gm-map-topbar-title">
+          <p class="eyebrow">the grimoire</p>
+          <span class="tale-name" id="gm-map-tale-name"></span>
+        </div>
+        <div class="gm-map-topbar-actions">
+          <button class="btn-tiny" id="gm-map-sidebar-toggle" type="button">Hide Contents</button>
+          <button class="btn-tiny" id="gm-map-rename-tale-btn" type="button">Rename</button>
+        </div>
+      </div>
+
+      <!-- View switcher: three tools sharing one tale's data (graph, quests,
+           map), rather than three separate destinations reached through a
+           chooser screen. Sits between the identity row above and each
+           tool's own toolbar below. Only one tool's toolbar/canvas pair is
+           shown at a time — see setGmView() in grimoire-manager.js. -->
+      <div class="gm-view-tabs" id="gm-view-tabs" role="tablist">
+        <button class="gm-view-tab active" id="gm-view-tab-graph" type="button" data-view="graph" role="tab" aria-selected="true">◆ Graph</button>
+        <button class="gm-view-tab" id="gm-view-tab-quests" type="button" data-view="quests" role="tab" aria-selected="false">Quests</button>
+        <button class="gm-view-tab" id="gm-view-tab-map" type="button" data-view="map" role="tab" aria-selected="false">World Map</button>
+      </div>
+
+      <div class="gm-map-toolbar" id="gm-graph-toolbar">
+        <button class="btn-small btn-gold" id="gm-map-new-node" type="button">+ New passage</button>
+        <button class="btn-small" id="gm-map-new-group" type="button">+ New group</button>
+        <button class="btn-small" id="gm-map-playtest-btn" type="button">Playtest from Start</button>
+        <button class="btn-small" id="gm-map-search-btn" type="button" title="Search passages">Search</button>
+        <input type="text" id="gm-map-search-input" class="gm-map-search-input" placeholder="Search passages…" hidden>
+        <button class="btn-small" id="gm-map-fit-btn" type="button" title="Frame every passage in view">⤢ Fit view</button>
+      </div>
+
+      <!-- Quests tool's own toolbar row — hidden alongside its canvas until
+           the Quests tab is active. Populated for real once quest-editor.js
+           has something to build; placeholder button for now. -->
+      <div class="gm-map-toolbar" id="gm-quest-toolbar" hidden>
+        <button class="btn-small btn-gold" id="gm-quest-new-btn" type="button">+ New quest</button>
+      </div>
+
+      <!-- World Map tool's own toolbar row — same pattern as above. -->
+      <div class="gm-map-toolbar" id="gm-worldmap-toolbar" hidden>
+        <button class="btn-small btn-gold" id="gm-worldmap-new-location-btn" type="button">+ New location</button>
+      </div>
+
+      <div class="gm-map-body" id="gm-map-body">
+        <!-- Contents: a full nested tree of every passage/group in the tale,
+             independent of whatever the canvas currently has scoped into
+             view — a second way to find and open a passage besides
+             clicking its card on the map. Collapsed on narrow viewports;
+             see the media query in style.css. Stays mounted across all
+             three tools, not just Graph — quests and map locations both
+             reference passages, so this stays the one shared way to find
+             one. -->
+        <aside class="gm-contents-sidebar" id="gm-contents-sidebar">
+          <p class="gm-contents-heading" id="gm-contents-heading">Contents</p>
+          <div class="gm-contents-tree" id="gm-contents-tree"></div>
+        </aside>
+
+        <div class="graph-viewport" id="graph-viewport">
+          <div class="graph-canvas" id="graph-canvas"></div>
+        </div>
+
+        <!-- Quests canvas (see quest-editor.js). Unlike the graph/world-map
+             canvases, this isn't a spatial surface to pan/zoom — it's a
+             parchment card list, same register as the item ledger, just
+             scaled up to hold quest cards that expand into their own
+             objective cards. -->
+        <div class="quest-viewport" id="quest-viewport" hidden>
+          <div class="quest-panel">
+            <p class="gm-subhead">Quests</p>
+            <p class="ledger-intro">Track objectives across this tale. Each objective completes when any one of its conditions is met — mark it manually, or tie it to reaching a passage or carrying an item.</p>
+            <div class="quest-list" id="quest-list"></div>
+          </div>
+        </div>
+
+        <!-- Inspector: mirrors the Contents sidebar's width on the opposite
+             edge, so Quests reads as a symmetric three-column layout rather
+             than one wide list with dead space beside it. Shows whatever
+             quest/objective was last clicked (see quest-editor.js), and —
+             more usefully than a plain detail readout — a live list of
+             everything that quest/objective references (passages, items),
+             each clickable to jump straight there. That's the part that
+             actually earns its keep: it's the one place in the app that
+             surfaces the cross-references rename fan-out has to keep in
+             sync, instead of them being invisible until something breaks. -->
+        <aside class="quest-inspector" id="quest-inspector" hidden>
+          <p class="gm-contents-heading">Inspector</p>
+          <div class="quest-inspector-body" id="quest-inspector-body"></div>
+        </aside>
+
+        <!-- World map canvas — placeholder for now (see map-editor.js). -->
+        <div class="map-editor-viewport" id="map-editor-viewport" hidden>
+          <div class="gm-tool-placeholder">
+            <p class="eyebrow">the grimoire</p>
+            <p class="gm-tool-placeholder-title">World Map</p>
+            <p class="gm-tool-placeholder-text">A geographic map of this tale's locations will live here, linked to passages the same way the passage graph is.</p>
+          </div>
+        </div>
+
+        <!-- Passage drawer: on a wide viewport this docks as a third
+             column via the media query in style.css (no backdrop, no
+             slide animation — see isWideDrawerLayout() in ui-core.js). On
+             narrow viewports it's unchanged: a slide-in overlay with a
+             dimming backdrop behind it. Nested here (not a page-level
+             sibling) specifically so it can participate in this row's
+             flex layout once docked. -->
+        <div class="gm-drawer-backdrop" id="gm-drawer-backdrop" hidden></div>
+        <aside class="gm-drawer" id="gm-page" hidden>
+          <header class="gm-drawer-header">
+            <span class="corner-flourish tl" aria-hidden="true">◆</span>
+            <div class="gm-drawer-header-text">
+              <p class="gm-drawer-eyebrow">the grimoire</p>
+              <p class="gm-drawer-title" id="gm-drawer-title">Passage</p>
+            </div>
+            <button class="gm-drawer-close" id="gm-drawer-close" type="button" aria-label="Close passage editor">✕</button>
+          </header>
+
+          <div class="gm-drawer-body">
+            <div class="gm-editor">
+              <label class="gm-label">Passage id
+                <div class="id-row">
+                  <input type="text" id="gm-node-id" disabled>
+                  <button type="button" class="btn-tiny" id="gm-change-node-id-btn">Change id</button>
+                </div>
+              </label>
+
+              <label class="gm-label">Group <span class="hint-inline">(map organization — separate from the chapter label below)</span>
+                <div class="id-row">
+                  <input type="text" id="gm-node-group" disabled>
+                  <button type="button" class="btn-tiny" id="gm-change-node-group-btn">Move to group</button>
+                </div>
+              </label>
+
+              <label class="gm-label">Chapter label
+                <input type="text" id="gm-chapter" placeholder="I — The Gatehouse">
+              </label>
+
+              <label class="gm-label">Passage text
+                <textarea id="gm-text" rows="5" placeholder="Describe what the reader sees, hears, and can do here..."></textarea>
+              </label>
+
+              <label class="gm-checkbox">
+                <input type="checkbox" id="gm-is-ending">
+                This passage is an ending — the tale stops here
+              </label>
+
+              <div id="gm-ending-fields" class="gm-ending-fields" hidden>
+                <label class="gm-label">Ending name
+                  <input type="text" id="gm-ending-type" placeholder="Crown Restored">
+                </label>
+              </div>
+
+              <div id="gm-choices-block" class="gm-choices-block">
+                <p class="gm-subhead">Choices</p>
+                <div id="gm-choices-list"></div>
+                <button class="btn-small" id="gm-add-choice" type="button">+ Add choice</button>
+              </div>
+
+              <div class="gm-actions">
+                <button class="btn-small btn-danger" id="gm-delete-node" type="button">Delete passage</button>
+                <button class="btn-small btn-gold" id="gm-save-node" type="button">Save passage</button>
+              </div>
+            </div>
+
+            <div class="gm-ledger">
+              <p class="gm-subhead">Item Definitions</p>
+              <p class="ledger-intro">Every item in this tale is defined once, here, then referenced by id from any choice's "requires" or "grants" field, so its name only ever needs updating in one place.</p>
+              <div class="item-defs-list" id="item-defs-list"></div>
+              <button class="btn-small" id="item-def-new" type="button">+ Define new item</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="gm-map-statusbar">
+        <div class="gm-map-statusbar-left">
+          <div class="gm-map-breadcrumb" id="gm-map-breadcrumb" hidden></div>
+        </div>
+        <div class="gm-map-statusbar-counts" id="gm-map-statusbar-counts"></div>
+        <div class="gm-map-statusbar-actions">
+          <button class="btn-tiny" id="gm-map-export-btn" type="button">Export this tale</button>
+          <button class="btn-tiny" id="gm-map-back-btn" type="button">‹ All tales</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  </div>
+
+  <!-- Shared modal, replaces native alert/confirm/prompt -->
+  <div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-message">
+      <p class="modal-message" id="modal-message"></p>
+      <input type="text" id="modal-input" class="modal-input" hidden>
+      <div class="modal-actions">
+        <button class="btn-small" id="modal-cancel-btn" type="button">Cancel</button>
+        <button class="btn-small btn-gold" id="modal-ok-btn" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared toast, replaces native alert for quiet confirmations -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="story-data.js"></script>
+  <script src="tale-storage.js"></script>
+  <script src="app-state.js"></script>
+  <script src="ui-core.js"></script>
+  <script src="player.js"></script>
+  <script src="grimoire-manager.js"></script>
+  <script src="grimoire-items.js"></script>
+  <script src="grimoire-editor.js"></script>
+  <script src="graph.js"></script>
+  <script src="quest-editor.js"></script>
+  <script src="map-editor.js"></script>
+</body>
+</html>
