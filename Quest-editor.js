@@ -272,19 +272,15 @@ const QuestEditor = (function () {
     const card = buildAccordionCard({
       isExpanded,
       onToggle: () => {
-        // Only expand here — never collapse. Before the "touch anywhere
-        // locks in the Inspector" convention existed, this doubled as
-        // collapse-on-second-click, which was fine: the header was the
-        // only thing you'd click. Now that clicking anywhere in an
-        // already-open quest is the normal way to reselect it (and the
-        // header/summary bar is the most natural-feeling spot to do that
-        // from), a second header click collapsing the whole card out
-        // from under the reader reads as "the quest disappeared," not as
-        // "I closed the accordion." Only one quest is ever expanded at a
-        // time anyway (expandedQuestId is a single id, not a set), so
-        // opening a different quest from the sidebar already collapses
-        // this one — an explicit collapse-via-header isn't needed.
-        expandedQuestId = quest.id;
+        // Real toggle again: expand if collapsed, collapse if already
+        // open. A previous version made this expand-only, reasoning that
+        // clicking an already-open quest's header to reselect it (rather
+        // than actually intending to close it) was collapsing the card
+        // out from under the reader — but that traded one bug for
+        // another: cards became impossible to close on their own, only
+        // ever closing when a different one was opened. Reverting to a
+        // genuine per-card toggle.
+        expandedQuestId = isExpanded ? null : quest.id;
         gmInspectorSelection = { kind: "quest", id: quest.id };
         render();
       },
