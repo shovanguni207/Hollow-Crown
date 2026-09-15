@@ -2872,7 +2872,7 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   line-height: 1;
   color: var(--gold);
 }
-.graph-node-icon.icon-normal, .graph-node-icon.icon-group {
+.graph-node-icon.icon-normal {
   display: inline-flex;
   width: 18px;
   height: 18px;
@@ -2969,10 +2969,6 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   font-size: 0.95rem;
   opacity: 0.85;
 }
-.graph-node.graph-node-group:hover .graph-node-menu.is-chevron,
-.graph-node.graph-node-group:focus-visible .graph-node-menu.is-chevron {
-  color: var(--gold-bright);
-}
 .graph-node-menu.is-kebab {
   display: flex;
   flex-direction: column;
@@ -3007,54 +3003,105 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
    card glued to the corner. Everything else about the group card
    (icon, meta bar, actions, chevron) is untouched. */
 /* Group cards deliberately break from the passage-card visual language —
-   the goal isn't "a slightly nicer parchment card," it's something that
-   reads as a distinct object from across a zoomed-out canvas where fine
-   details (icon, thin borders, text) are illegible. Two things do that
-   work: a solid, saturated gold-plaque fill instead of neutral parchment
-   (color alone registers "different" at a glance, no reading required),
-   and a thick dark border (gold-on-gold at 1px would vanish when zoomed
-   out — contrast has to survive shrinking, not just look nice at 100%).
-   Thematically this reads as "a small vault/treasury of passages" rather
-   than "one more card," which fits a fantasy tool's illuminated-manuscript
-   aesthetic better than a flatter, more generic treatment would.
+   a two-tone "sealed medallion" look (light header band, dark body band,
+   thick gold frame) instead of one uniform fill, so the card reads as a
+   distinct object from across a zoomed-out canvas on color and silhouette
+   alone, not just at 100% zoom where fine details are legible. Thick,
+   rounded — not the beveled/cut-corner look a reference image used —
+   staying in the same smooth-cornered visual language every other card
+   already uses, just with its own frame and split fill.
 
-   The stacked layers behind it are also more exaggerated than a single
-   straight offset: two rotated ghost sheets (::before/::after) fan out
-   at increasing angles and fading opacity, so the card's *silhouette* —
-   not just its color — reads as "a pile of things," recognizable as a
-   distinct shape purely in miniature. z-index:0 on the card gives these
-   pseudo-elements their own local stacking context, so -1/-2 stay scoped
-   to this card instead of slipping behind unrelated siblings or wires. */
+   The split itself is two real child elements (.graph-node-group-header/
+   -body, built in buildGroupNode) rather than a single hard-stop gradient
+   on one box — a gradient's color-stop percentage would drift out of sync
+   the moment the title wraps to two lines or the description grows;
+   two flex children naturally resize with their own content instead.
+   overflow:hidden on the card clips both bands' square corners to the
+   card's own rounded ones, so the smoothness is automatic rather than
+   needing matching border-radius values hand-kept in sync on every band. */
 .graph-node.graph-node-group {
   z-index: 0;
-  background: linear-gradient(165deg, var(--gold-bright) 0%, var(--gold) 100%);
-  border: 3px solid var(--ink);
-  border-radius: 16px;
+  gap: 0;
+  padding: 0;
+  background: none;
+  border: 3px solid var(--gold);
+  border-radius: 18px;
+  overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255, 248, 227, 0.55),
+    inset 0 1px 0 rgba(255, 248, 227, 0.3),
     0 10px 26px rgba(0, 0, 0, 0.55);
 }
-.graph-node.graph-node-group::before,
-.graph-node.graph-node-group::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--gold);
-  border: 3px solid var(--ink);
-  border-radius: inherit;
+
+.graph-node-group-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(165deg, var(--gold-bright) 0%, var(--gold) 100%);
 }
-.graph-node.graph-node-group::before {
-  z-index: -1;
-  opacity: 0.75;
-  transform: translate(11px, 10px) rotate(3deg);
+/* Both the chevron and the rename/delete actions move from the base
+   .graph-node styling's whole-card absolute positioning into normal flex
+   flow here, once they're inside this header row — .graph-node-head's
+   title already uses flex:1 1 auto (see the shared rule above) and so
+   pushes both of them to the header's right edge on its own, the same
+   way flex-basis:0 pushes a spacer in a typical toolbar layout. */
+.graph-node-group-header .graph-node-menu {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  margin-left: 4px;
+  color: var(--ink);
+  opacity: 0.6;
 }
-.graph-node.graph-node-group::after {
-  z-index: -2;
-  opacity: 0.5;
-  transform: translate(22px, 19px) rotate(6deg);
+.graph-node.graph-node-group:hover .graph-node-group-header .graph-node-menu,
+.graph-node.graph-node-group:focus-visible .graph-node-group-header .graph-node-menu {
+  color: var(--ink);
+  opacity: 1;
 }
-.graph-node.graph-node-group.is-orphan::before,
-.graph-node.graph-node-group.is-orphan::after { border-style: dashed; }
+.graph-node-group-header .graph-node-group-actions {
+  position: static;
+  flex: 0 0 auto;
+  margin-left: 6px;
+}
+
+.graph-node-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px 14px;
+  background: linear-gradient(165deg, #241b12 0%, var(--ink) 100%);
+}
+.graph-node.graph-node-group .graph-node-sub {
+  text-align: left;
+  color: var(--gold-bright);
+}
+.graph-node.graph-node-group .graph-node-meta {
+  justify-content: flex-start;
+}
+.graph-node.graph-node-group .graph-node-meta .meta-stat strong { color: var(--parchment); }
+.graph-node.graph-node-group .graph-node-meta .meta-stat i { color: rgba(236, 224, 196, 0.65); }
+
+/* Regular hexagon, not jagged — a clean six-point clip-path rather than
+   the plain unboxed glyph passage cards use, echoing a sealed medallion
+   set into the header without breaking from smooth/rounded shapes. Kept
+   scoped to .icon-group specifically (split out of the old combined
+   .icon-normal/.icon-group rule) so passage cards' icon is untouched. */
+.graph-node-icon.icon-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 6px;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0% 50%);
+  background: var(--ink);
+  border: 2px solid var(--gold-bright);
+  color: var(--gold-bright);
+}
+
 
 /* Rename/delete affordances on a group card — small enough to stay out of
    the way of the title/meta bar, but always visible (not hover-only, to

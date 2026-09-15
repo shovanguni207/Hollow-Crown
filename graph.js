@@ -906,6 +906,20 @@ const NodeGraph = (() => {
     card.tabIndex = 0;
     card.title = "Open this group";
 
+    // Two-tone header/body split — a light band for the icon/title/menu/
+    // actions, a darker band for the subtitle/stats. Every element below
+    // is exactly what buildGroupNode already produced (same icon, same
+    // title, same "group"/subgroup label, same passage/entry stats, same
+    // rename/delete/chevron controls) — this only changes which container
+    // they're gathered under, so the two background colors can be applied
+    // per-band with plain CSS rather than faked with a hard-coded gradient
+    // stop that would drift out of sync with real, variable-height content.
+    const header = document.createElement("div");
+    header.className = "graph-node-group-header";
+
+    header.appendChild(buildNodeHead("group", desc.group.label));
+    header.appendChild(buildCardMenu("group"));
+
     const actions = document.createElement("div");
     actions.className = "graph-node-group-actions";
 
@@ -934,21 +948,25 @@ const NodeGraph = (() => {
       await deleteGroup(desc.key);
     });
     actions.appendChild(deleteBtn);
-    card.appendChild(actions);
+    header.appendChild(actions);
 
-    card.appendChild(buildNodeHead("group", desc.group.label));
+    card.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "graph-node-group-body";
 
     const sub = document.createElement("span");
     sub.className = "graph-node-sub";
     sub.textContent = subgroupCount > 0 ? subgroupCount + " subgroup" + (subgroupCount === 1 ? "" : "s") : "group";
-    card.appendChild(sub);
+    body.appendChild(sub);
 
     const entries = countEntries(gmStory, new Set(desc.allPassageIds));
-    card.appendChild(buildMetaBar([
+    body.appendChild(buildMetaBar([
       { value: desc.allPassageIds.length, label: "passages" },
       { value: entries, label: entries === 1 ? "entry" : "entries" }
     ]));
-    card.appendChild(buildCardMenu("group"));
+
+    card.appendChild(body);
 
     attachDrag(
       card, desc.key,
