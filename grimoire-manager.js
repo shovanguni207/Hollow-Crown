@@ -274,6 +274,7 @@ function openTale(id) {
 const GM_VIEWS = {
   graph:  { tab: "gm-view-tab-graph",  toolbar: "gm-graph-toolbar",    viewport: "graph-viewport" },
   quests: { tab: "gm-view-tab-quests", toolbar: "gm-quest-toolbar",    viewport: "quest-viewport" },
+  items:  { tab: "gm-view-tab-items",  toolbar: "gm-items-toolbar",    viewport: "item-workshop-viewport" },
   map:    { tab: "gm-view-tab-map",    toolbar: "gm-worldmap-toolbar", viewport: "map-editor-viewport" }
 };
 

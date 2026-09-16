@@ -184,6 +184,7 @@
       <div class="gm-view-tabs" id="gm-view-tabs" role="tablist">
         <button class="gm-view-tab active" id="gm-view-tab-graph" type="button" data-view="graph" role="tab" aria-selected="true">◆ Graph</button>
         <button class="gm-view-tab" id="gm-view-tab-quests" type="button" data-view="quests" role="tab" aria-selected="false">Quests</button>
+        <button class="gm-view-tab" id="gm-view-tab-items" type="button" data-view="items" role="tab" aria-selected="false">Items</button>
         <button class="gm-view-tab" id="gm-view-tab-map" type="button" data-view="map" role="tab" aria-selected="false">World Map</button>
       </div>
 
@@ -201,6 +202,15 @@
            has something to build; placeholder button for now. -->
       <div class="gm-map-toolbar" id="gm-quest-toolbar" hidden>
         <button class="btn-small btn-gold" id="gm-quest-new-btn" type="button">+ New quest</button>
+      </div>
+
+      <!-- Items tool's own toolbar row — same pattern as above. The "+ New
+           item" button here IS the item ledger's old "+ Define new item"
+           button (see grimoire-items.js), just relocated: same id
+           (item-def-new), same click handler, so no JS changed to move it —
+           only where it lives in the page. -->
+      <div class="gm-map-toolbar" id="gm-items-toolbar" hidden>
+        <button class="btn-small btn-gold" id="item-def-new" type="button">+ New item</button>
       </div>
 
       <!-- World Map tool's own toolbar row — same pattern as above. -->
@@ -253,6 +263,26 @@
           <p class="gm-contents-heading">Inspector</p>
           <div class="quest-inspector-body" id="quest-inspector-body"></div>
         </aside>
+
+        <!-- Items workshop: the tale-wide item registry, moved out of the
+             passage drawer (where it used to live as a fixed panel under
+             every passage's form, regardless of whether that passage
+             referenced any items at all) into its own tab, so items are
+             defined and managed once, in one place, the same way Quests
+             already gets its own tab rather than living inside the drawer.
+             Same parchment-panel register as #quest-viewport — a flat
+             scrolling list of cards, not a spatial canvas — since an item
+             registry has the same "reference data for the whole tale"
+             shape a quest list does. renderItemDefs() (grimoire-items.js)
+             still targets #item-defs-list directly, so moving its markup
+             here needed no JS changes. -->
+        <div class="item-workshop-viewport" id="item-workshop-viewport" hidden>
+          <div class="item-panel">
+            <p class="gm-subhead">Items</p>
+            <p class="ledger-intro">Every item in this tale is defined once, here, then referenced by id from any choice's "requires" or "grants" field, so its name only ever needs updating in one place.</p>
+            <div class="item-defs-list" id="item-defs-list"></div>
+          </div>
+        </div>
 
         <!-- World map canvas — placeholder for now (see map-editor.js). -->
         <div class="map-editor-viewport" id="map-editor-viewport" hidden>
@@ -327,13 +357,11 @@
                 <button class="btn-small btn-gold" id="gm-save-node" type="button">Save passage</button>
               </div>
             </div>
-
-            <div class="gm-ledger">
-              <p class="gm-subhead">Item Definitions</p>
-              <p class="ledger-intro">Every item in this tale is defined once, here, then referenced by id from any choice's "requires" or "grants" field, so its name only ever needs updating in one place.</p>
-              <div class="item-defs-list" id="item-defs-list"></div>
-              <button class="btn-small" id="item-def-new" type="button">+ Define new item</button>
-            </div>
+            <!-- Item Definitions used to live here as a fixed panel under
+                 every passage's form. Moved to its own "Items" tab
+                 (#item-workshop-viewport) alongside Quests and World Map —
+                 items are tale-wide reference data, not something scoped to
+                 whichever passage happens to be open. -->
           </div>
         </aside>
       </div>

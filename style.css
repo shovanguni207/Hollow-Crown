@@ -1626,19 +1626,13 @@ button.quest-tracker-check:hover, button.quest-tracker-check:focus-visible {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ===== Item Ledger (Grimoire): auto-generated registry of every item in the tale ===== */
-/* Wrapped in its own soft, recessed panel — rather than just another
-   divided section of the same form — so it reads as a distinct kind of
-   content: tale-wide reference data, not more fields for the passage
-   currently being edited above it. */
-.gm-ledger {
-  margin-top: 28px;
-  padding: 18px 18px 20px;
-  background: rgba(21, 17, 12, 0.035);
-  border: 1px solid rgba(124, 50, 48, 0.16);
-  border-radius: 8px;
-  box-shadow: inset 0 1px 4px rgba(21, 17, 12, 0.05);
-}
+/* ===== Item Ledger (Grimoire): auto-generated registry of every item in the tale =====
+   Used to be a soft recessed sub-panel nested under a passage's own form in
+   the drawer. Now it's the Items tab's own top-level content, sitting
+   directly on the .item-workshop-viewport parchment the same way
+   .quest-panel sits on .quest-viewport — so it gets that same plain
+   max-width treatment instead of its own nested-panel background/border. */
+.item-panel { max-width: 720px; }
 
 .ledger-intro {
   font-size: 0.86rem;
@@ -2011,6 +2005,20 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
    the comment on #quest-viewport in index.html. Scrolls internally rather
    than centering placeholder text, since real content lives here now. ---- */
 .quest-viewport:not([hidden]) {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  border-radius: 6px;
+  background: var(--parchment);
+  box-shadow: inset 0 0 0 1px var(--gold);
+  padding: 20px 24px;
+}
+
+/* ---- Items canvas: same parchment card-list register as .quest-viewport
+   above — the item registry is tale-wide reference data, not a spatial
+   surface, so it gets the identical treatment rather than a variant. ---- */
+.item-workshop-viewport:not([hidden]) {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
