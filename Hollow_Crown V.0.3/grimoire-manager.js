@@ -314,8 +314,6 @@ function setGmView(view) {
   // does).
   if (view === "quests") {
     QuestEditor.render();
-  } else if (view === "items") {
-    renderItemContentsSidebar();
   } else {
     NodeGraph.renderContentsSidebar();
     document.getElementById("gm-contents-heading").textContent = "Contents";
@@ -369,10 +367,6 @@ function touchCurrentTale() {
   // the moment someone switches to it (see setGmView), so this is purely
   // about not showing stale text if they're looking at it *right now*.
   if (gmActiveView === "quests") QuestEditor.render();
-  // Items' sidebar list is separate from the main #item-defs-list panel
-  // renderItemDefs() already refreshed above — only worth rebuilding while
-  // Items is the visible tab, same gating as Quests just above.
-  if (gmActiveView === "items") renderItemContentsSidebar();
 }
 
 document.getElementById("gm-map-export-btn").addEventListener("click", () => exportTale(currentTaleId));

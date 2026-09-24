@@ -2560,15 +2560,6 @@ body:has(.gm-map-page:not([hidden])) { overflow: hidden; padding: 0; }
   font-size: 0.78rem;
   line-height: 1;
 }
-/* Same treatment again for the item-row flavor of this sidebar (see
-   renderItemContentsSidebar in grimoire-items.js) — reuses the same ◆
-   glyph the item ledger's own .item-mark already uses, so an item reads
-   as the same "thing" whether you're looking at its sidebar row or its
-   ledger card. */
-.gm-contents-icon.icon-item {
-  font-size: 0.7rem;
-  line-height: 1;
-}
 
 /* Crown for the start passage, skull for an ending — same inline-SVG
    shapes as the map card's .graph-node-icon (see buildEmblemIcon in
